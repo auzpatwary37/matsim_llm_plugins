@@ -44,7 +44,7 @@ public class GsonTrial {
 		for(Person p:pop.getPersons().values()){
 			String att = gson.toJson(p.getAttributes());
 			String planAtt = gson.toJson(p.getSelectedPlan().getAttributes());
-			String planStr = gson.toJson(p.getSelectedPlan().getPlanElements());
+			String planStr = gson.toJson(p.getSelectedPlan());
 			System.out.println(att);
 			System.out.println(planStr);
 			System.out.println(planAtt);
