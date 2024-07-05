@@ -5,16 +5,19 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 
 import apikeys.APIKeys;
+import gsonprocessor.PlanSchema;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import rest.ChatCompletionResponse.Message;
 public class ChatCompletionClient {
     private String chatAPI_URL;
     private String embeddingAPI_URL;
@@ -27,6 +30,7 @@ public class ChatCompletionClient {
     private boolean ifStream;
     private int seed;
     private String prompt;
+    private List<Tool> tools = null;
     
 
     // Private constructor to enforce the use of the builder
@@ -41,7 +45,7 @@ public class ChatCompletionClient {
         this.authorization = builder.authorization;
         this.project = builder.project;
         this.organization = builder.organization;
-        
+        this.tools = builder.tools;
         
     }
     public static void main(String[] args) {
@@ -55,6 +59,7 @@ public class ChatCompletionClient {
     			.setIfStream(false)
     			.setMaxToken(4096)
     			.setTemperature(.7)
+    			.setTools(List.of(PlanSchema.getPlanGsonSchemaAsFunctionTool()))
     			.build();
     	//client.getResponse("Answer in academic language.", "Introduce yourself.");
     	BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
@@ -68,7 +73,7 @@ public class ChatCompletionClient {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-            String out = client.getResponse(system, input);
+            String out = client.getResponse(system, input).getContent();
             System.out.print("AI: ");
             System.out.println(out);
         }
@@ -86,6 +91,7 @@ public class ChatCompletionClient {
         private String authorization;
         private String project;
         private String organization;
+        private List<Tool> tools = null;
 
         public Builder() {}
 
@@ -142,6 +148,11 @@ public class ChatCompletionClient {
         	return this;
         }
         
+        public Builder setTools(List<Tool> tools) {
+        	this.tools = tools;
+        	return this;
+        }
+        
     }
 
     // Getters for the fields (optional, but usually needed)
@@ -173,7 +184,7 @@ public class ChatCompletionClient {
         return seed;
     }
 
-    public String getResponse(String systemMessage,String userMessage) {
+    public Message getResponse(String systemMessage,String userMessage) {
         try {
         	prompt+="\nUser:"+userMessage;
             // Create the request payload
@@ -186,6 +197,7 @@ public class ChatCompletionClient {
             requestPayload.setTemperature(temperature);
             requestPayload.setMaxTokens(maxToken);
             requestPayload.setStream(ifStream);
+            requestPayload.SetTools(tools);
 
             // Serialize the request payload to JSON
             Gson gson = new Gson();
@@ -228,7 +240,8 @@ public class ChatCompletionClient {
                // System.out.println("Message: " + choice.getMessage().getContent());
                 //System.out.println("Finish Reason: " + choice.getFinishReason());
             //}
-            String response = chatCompletionResponse.getChoices().get(0).getMessage().getContent();
+            Message response = chatCompletionResponse.getChoices().get(0).getMessage();
+            //String functionCall = chatCompletionResponse.getChoices().get(0).getMessage().getToolCalls().get(0).getFunction().getArguments();
             
             prompt+="\nModel:"+response;
             
@@ -238,6 +251,8 @@ public class ChatCompletionClient {
         }
         return null;
     }
+    
+    
     @Override
     public String toString() {
         return "ChatCompletionClient{" +
@@ -250,6 +265,7 @@ public class ChatCompletionClient {
                 ", seed=" + seed +
                 '}';
     }
+    
 }
 
 

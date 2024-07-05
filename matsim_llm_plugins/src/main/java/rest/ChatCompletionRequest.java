@@ -10,6 +10,7 @@ public class ChatCompletionRequest {
     @SerializedName("max_tokens")
     private int maxTokens;
     private boolean stream;
+    private List<Tool> tools;
 
     public static class Message {
         private String role;
@@ -78,5 +79,10 @@ public class ChatCompletionRequest {
     public void setStream(boolean stream) {
         this.stream = stream;
     }
+    
+    public void SetTools(List<Tool> tools) {
+    	this.tools = tools;
+    }
+    
 }
 

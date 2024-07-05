@@ -129,7 +129,7 @@ public static void main(String[] args) {
 		System.out.println(doc);
 		String response = chatClient.getResponse("Provide answer from the attached document, if you do not know, simply say I do not know.",
 				"Here is a document about some fun facts about different topics. Which one of them is your favourite?"+doc
-		);
+		).getContent();
 		System.out.println(response);
 	} catch (ApiException e) {
 		// TODO Auto-generated catch block

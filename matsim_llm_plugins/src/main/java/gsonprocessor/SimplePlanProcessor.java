@@ -11,7 +11,6 @@ import org.matsim.core.population.PopulationUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import nlprocessor.GsonTrial.PlanElementDeserializer;
 
 public class SimplePlanProcessor{
 	public static final String PLUGIN = "plugin";
@@ -25,10 +24,10 @@ public class SimplePlanProcessor{
 		
 		PlanGson pg = PlanGson.createPlanGson(plan);
 		GsonBuilder gsonBuilder = new GsonBuilder()
-				.registerTypeAdapter(PlanElement.class, new PlanElementDeserializer());
-		gsonBuilder.serializeNulls();
-	    gsonBuilder.serializeSpecialFloatingPointValues();
-	    gsonBuilder.setPrettyPrinting();
+				.registerTypeAdapter(PlanElementGson.class, new PlanElementGsonDeserializer())
+				.serializeNulls()
+				.serializeSpecialFloatingPointValues()
+				.setPrettyPrinting();
 	    Gson gson = gsonBuilder.create();
 	    
 	    String jsonString = gson.toJson(pg);
@@ -36,7 +35,12 @@ public class SimplePlanProcessor{
 		PlanGson plan_gson = gson.fromJson(jsonString, PlanGson.class);
 		
 		System.out.print(gson.toJson(plan_gson));
+		String response = "{\"activitiesAndLegs\":[{\"carLocation\":\"home\",\"endTime\":0,\"activityType\":\"home\"},{\"mode\":\"car\"},{\"carLocation\":\"work\",\"endTime\":0,\"activityType\":\"work\"},{\"mode\":\"car_passenger\"},{\"carLocation\":\"home\",\"endTime\":0,\"activityType\":\"leisure\"},{\"mode\":\"car_passenger\"},{\"carLocation\":\"home\",\"endTime\":0,\"activityType\":\"home\"}]}";
 		
+		PlanGson planFromGpt = gson.fromJson(response, PlanGson.class);
+		System.out.println(planFromGpt);
+		Plan plan_ = planFromGpt.getPlan();
+		System.out.println(plan_);
 	}
 	
 	
