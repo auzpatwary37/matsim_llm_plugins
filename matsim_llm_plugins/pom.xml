@@ -24,8 +24,8 @@
 <!--		!! matsim-examples is currently on a more modern version since I want to modernize some things there. kai, apr'21 !!-->
 		
 		<matsim.version>15.0</matsim.version> <!-- 18.05.2021-->
-		<maven.compiler.source>21</maven.compiler.source>
-		<maven.compiler.target>21</maven.compiler.target>
+		<maven.compiler.source>17</maven.compiler.source>
+		<maven.compiler.target>17</maven.compiler.target>
 	
    </properties>
   
@@ -36,9 +36,9 @@
       <plugin>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-compiler-plugin</artifactId>
-    <version>3.8.0</version>
+    <version>3.13.0</version>
     <configuration>
-        <release>21</release> 
+        <release>17</release> 
     </configuration>
 </plugin>
 
@@ -280,6 +280,44 @@
     <groupId>io.github.amikos-tech</groupId>
     <artifactId>chromadb-java-client</artifactId>
     <version>0.1.4</version>
+</dependency>
+
+<!-- https://mvnrepository.com/artifact/dev.langchain4j/langchain4j-core -->
+<dependency>
+    <groupId>dev.langchain4j</groupId>
+    <artifactId>langchain4j-core</artifactId>
+    <version>0.32.0</version>
+</dependency>
+<!-- https://mvnrepository.com/artifact/dev.langchain4j/langchain4j -->
+<dependency>
+    <groupId>dev.langchain4j</groupId>
+    <artifactId>langchain4j</artifactId>
+    <version>0.32.0</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>dev.langchain4j</groupId>
+    <artifactId>langchain4j-local-ai</artifactId>
+    <version>0.32.0</version>
+</dependency>
+
+
+<dependency>
+    <groupId>dev.langchain4j</groupId>
+    <artifactId>langchain4j-ollama</artifactId>
+    <version>0.32.0</version>
+</dependency>
+
+<dependency>
+    <groupId>dev.langchain4j</groupId>
+    <artifactId>langchain4j-open-ai</artifactId>
+    <version>0.32.0</version>
+</dependency>
+
+<dependency>
+    <groupId>dev.langchain4j</groupId>
+    <artifactId>langchain4j-mistral-ai</artifactId>
+    <version>0.32.0</version>
 </dependency>
 <!-- 
 <dependency>

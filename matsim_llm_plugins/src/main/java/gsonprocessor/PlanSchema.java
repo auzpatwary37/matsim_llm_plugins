@@ -1,9 +1,15 @@
 package gsonprocessor;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import rest.Function;
 import rest.FunctionParameter;
@@ -92,6 +98,24 @@ public static final String PlanGson_Schema = "{\n"
 		+ "        }\n"
 		+ "    }\n"
 		+ "}";
+	
+	public static void main(String[] args) {
+		GsonBuilder gsonBuilder = new GsonBuilder()
+				.registerTypeAdapter(PlanElementGson.class, new PlanElementGsonDeserializer());
+		gsonBuilder.serializeNulls();
+	    gsonBuilder.serializeSpecialFloatingPointValues();
+	    gsonBuilder.setPrettyPrinting();
+	    Gson gson = gsonBuilder.create();
+	    String jsonSchema = gson.toJson(getPlanGsonSchemaAsFunctionTool());
+	    try {
+			FileWriter fw = new FileWriter(new File("planSchema.json"));
+			fw.append(jsonSchema);
+			fw.flush();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 
 	public static Tool getPlanGsonSchemaAsFunctionTool(){
 		// Create the tools array

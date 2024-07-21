@@ -31,6 +31,8 @@ public class ChatCompletionClient {
     private int seed;
     private String prompt;
     private List<Tool> tools = null;
+    private String tool_choice = "auto";
+    private static boolean error429 = false;
     
 
     // Private constructor to enforce the use of the builder
@@ -46,16 +48,19 @@ public class ChatCompletionClient {
         this.project = builder.project;
         this.organization = builder.organization;
         this.tools = builder.tools;
+        this.tool_choice = builder.tool_choice;
         
     }
+    
+    
     public static void main(String[] args) {
     	ChatCompletionClient client = new ChatCompletionClient.Builder()
-    			.setChatAPI_URL("https://api.openai.com/v1/chat/completions")//http://localhost:1234/v1/chat/completions
+    			.setChatAPI_URL("http://localhost:11434/v1/chat/completions")//"https://api.openai.com/v1/chat/completions"http://localhost:1234/v1/chat/completions
     			.setEmbeddingAPI_URL("http://localhost:1234/v1/embeddings")
-    			.setModelName("gpt-3.5-turbo")
-    			.setauthorization(APIKeys.GPT_KEY)
-    			.setOrganization(APIKeys.ORGANIZATION_ID)
-    			.setProject(APIKeys.PROJECT_ID)
+    			.setModelName("llama3")//gpt-3.5-turbo
+    			//.setauthorization(APIKeys.GPT_KEY)
+    			//.setOrganization(APIKeys.ORGANIZATION_ID)
+    			//.setProject(APIKeys.PROJECT_ID)
     			.setIfStream(false)
     			.setMaxToken(4096)
     			.setTemperature(.7)
@@ -63,7 +68,7 @@ public class ChatCompletionClient {
     			.build();
     	//client.getResponse("Answer in academic language.", "Introduce yourself.");
     	BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
-    	String system = Prompt.HARDCODED_PROMOPT_EV_CHARGING;
+    	String system = Prompt.SystemMessageFunctionCalling;
     	while (true) {
             System.out.print("\nUser: ");
             String input = null;
@@ -92,12 +97,20 @@ public class ChatCompletionClient {
         private String project;
         private String organization;
         private List<Tool> tools = null;
+        private String tool_choice = "auto";
 
-        public Builder() {}
+        public Builder() {
+        	
+        }
 
         public Builder setChatAPI_URL(String chatAPI_URL) {
             this.chatAPI_URL = chatAPI_URL;
             return this;
+        }
+        
+        public Builder setToolChoice(String tool_choice) {
+        	this.tool_choice = tool_choice;
+        	return this;
         }
 
         public Builder setEmbeddingAPI_URL(String embeddingAPI_URL) {
@@ -183,6 +196,10 @@ public class ChatCompletionClient {
     public int getSeed() {
         return seed;
     }
+    
+    public String getToolChoice() {
+    	return this.tool_choice;
+    }
 
     public Message getResponse(String systemMessage,String userMessage) {
         try {
@@ -198,14 +215,14 @@ public class ChatCompletionClient {
             requestPayload.setMaxTokens(maxToken);
             requestPayload.setStream(ifStream);
             requestPayload.SetTools(tools);
+            requestPayload.setToolChoice(tool_choice);
 
             // Serialize the request payload to JSON
             Gson gson = new Gson();
             String requestBody = gson.toJson(requestPayload);
             //System.out.println(requestBody);
             // Create the HTTP request
-            OkHttpClient client = new OkHttpClient().newBuilder().readTimeout(100, TimeUnit.SECONDS).build();
-            
+            OkHttpClient client = new OkHttpClient().newBuilder().readTimeout(1000, TimeUnit.SECONDS).build();
             
 			MediaType mediaType = MediaType.parse("application/json");
 			RequestBody body = RequestBody.create(mediaType, requestBody);
@@ -221,9 +238,29 @@ public class ChatCompletionClient {
 			if(this.organization!=null)requestBuilder.addHeader("OpenAI-Organization", this.organization);
 			request = requestBuilder.build();
 			String responseBody = null;
+			Response responseok = null;
 			try {
-				Response response = client.newCall(request).execute();
-				responseBody = response.body().string();
+				while(true) {
+					if(!error429) {
+						responseok = client.newCall(request).execute();
+						if(!responseok.isSuccessful() && responseok.code()==429 ||responseok.code()==500) {
+							error429 = true;
+						}else {
+							error429 = false;
+							break;
+						}
+					}else {
+						Thread.sleep(10000);
+						error429 = false;
+					}
+					
+					
+					
+				}
+				
+				responseBody = responseok.body().string();
+				client.dispatcher().executorService().shutdown();
+				client.connectionPool().evictAll();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -240,9 +277,16 @@ public class ChatCompletionClient {
                // System.out.println("Message: " + choice.getMessage().getContent());
                 //System.out.println("Finish Reason: " + choice.getFinishReason());
             //}
+            if(chatCompletionResponse.getChoices()==null) {
+            	System.out.println(responseBody);
+            }
             Message response = chatCompletionResponse.getChoices().get(0).getMessage();
             //String functionCall = chatCompletionResponse.getChoices().get(0).getMessage().getToolCalls().get(0).getFunction().getArguments();
             
+//            if(response.getToolCalls().isEmpty()) {
+//            	System.out.println("Function was not called!!!");
+//            }
+
             prompt+="\nModel:"+response;
             
             return response;

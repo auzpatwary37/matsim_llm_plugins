@@ -1,0 +1,87 @@
+{
+  "type": "function",
+  "function": {
+    "name": "dummy_plan",
+    "description": "Create a Plan Object for MATSim execution.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "activitiesAndLegs": {
+          "description": "Alternates between ActivityGson and LegGson starting and ending with ActivityGson.",
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/definitions/ActivityGson"
+              },
+              {
+                "$ref": "#/definitions/LegGson"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "activitiesAndLegs"
+      ],
+      "definitions": {
+        "ActivityGson": {
+          "type": "object",
+          "properties": {
+            "carLocation": {
+              "description": "Current location of the agent\u0027s car. Should be same as the activity type.",
+              "type": "string"
+            },
+            "endTime": {
+              "description": "End time of this activity in seconds. Ranges from 0 to 86400.",
+              "type": "number"
+            },
+            "id": {
+              "description": "Id to identify a specific activity in a plan. The id should be the activity type + \"___\"+the order of occurance of this type of activity in the plan.",
+              "type": "string"
+            },
+            "activityType": {
+              "description": "Type of the activity performed",
+              "type": "string",
+              "enum": [
+                "plugin",
+                "plugout",
+                "leisure",
+                "education",
+                "work",
+                "errands",
+                "shop",
+                "home"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "activityType",
+            "endTime",
+            "carLocation"
+          ]
+        },
+        "LegGson": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "description": "Mode of the leg.",
+              "type": "string",
+              "enum": [
+                "car",
+                "car_passenger",
+                "walk",
+                "pt",
+                "bike"
+              ]
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        }
+      }
+    }
+  }
+}

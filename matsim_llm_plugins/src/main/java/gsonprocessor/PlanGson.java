@@ -12,6 +12,8 @@ import org.matsim.core.router.TripStructureUtils;
 import org.matsim.core.router.TripStructureUtils.StageActivityHandling;
 import org.matsim.core.router.TripStructureUtils.Trip;
 
+import dev.langchain4j.agent.tool.Tool;
+
 
 public class PlanGson{
 	public List<PlanElementGson> activitiesAndLegs = new ArrayList<>();
@@ -80,5 +82,9 @@ public class PlanGson{
 			}
 		}
 		return plan;
+	}
+	@Tool("Get the matsim plan of a corresponding json plan.")
+	public static void getPlanOut(PlanGson planGson) {
+		
 	}
 }

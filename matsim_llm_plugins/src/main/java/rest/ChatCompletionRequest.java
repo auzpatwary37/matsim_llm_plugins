@@ -11,6 +11,7 @@ public class ChatCompletionRequest {
     private int maxTokens;
     private boolean stream;
     private List<Tool> tools;
+    private String tool_choice;
 
     public static class Message {
         private String role;
@@ -82,6 +83,10 @@ public class ChatCompletionRequest {
     
     public void SetTools(List<Tool> tools) {
     	this.tools = tools;
+    }
+    
+    public void setToolChoice(String tool_choice) {
+    	this.tool_choice = tool_choice;
     }
     
 }
