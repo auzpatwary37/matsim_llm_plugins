@@ -715,7 +715,7 @@ public class Prompt {
 			+ "    }\n"
 			+ "  ]\n"
 			+ "}\n"
-			+ "Perfect. For the following plan, you can choose whicheven plan to give, i.e., charging at the first or last activity or around one or even multiple activities. Try to choose one which makes most logical sense. In terms of charging duration, location, convinience, etc..";
+			+ "Perfect. For the following plan, you can choose whicheven plan to give, i.e., charging at the first or last activity or around one or even multiple activities. Try to choose one which makes most logical sense. Where possible try to charge at the beginning or end of the day. If there are enough activities and it makes sense, charge over multiple activities.";
 	
 	public static String SystemMessageFunctionCalling = "You are a helpful assistant with access to the following functions. Use them if required - {str(tool)}";
 	public static String prompt_system_evAgent = "You are an intelligent traffic agent with a fixed daily schedule of activities and trips (legs) that will be given to you. You own an electric vehicle and your task is to schedule the plugin and plugout activities within your daily plan to charge your EV while performing different activites along with the necessary four trip legs connecting the plugin and plugout activities to the rest of the activities. Use the tools provided to you to return the scheduled plan with plugin and plugout activites.";

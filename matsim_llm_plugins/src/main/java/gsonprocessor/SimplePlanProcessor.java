@@ -17,7 +17,7 @@ public class SimplePlanProcessor{
 	public static final String PLUGOUT = "plugout";
 	
 	public static void main(String[] args) {
-		Population pop = PopulationUtils.readPopulation("NLP/output_plans.xml.gz");
+		Population pop = PopulationUtils.readPopulation("data\\1p daily\\40.plans.xml.gz");
 		Person person = pop.getPersons().values().stream().collect(Collectors.toList()).get(0);
 		
 		Plan plan = person.getSelectedPlan();
@@ -29,7 +29,7 @@ public class SimplePlanProcessor{
 				.serializeSpecialFloatingPointValues()
 				.setPrettyPrinting();
 	    Gson gson = gsonBuilder.create();
-	    
+	    System.out.println(plan.getPerson().getId());
 	    String jsonString = gson.toJson(pg);
 		System.out.println(jsonString);
 		PlanGson plan_gson = gson.fromJson(jsonString, PlanGson.class);

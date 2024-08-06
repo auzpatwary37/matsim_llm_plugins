@@ -17,7 +17,7 @@ import dev.langchain4j.agent.tool.Tool;
 
 public class PlanGson{
 	public List<PlanElementGson> activitiesAndLegs = new ArrayList<>();
-	
+	public String personId;
 	
 	public static PlanGson createPlanGson(Plan pl) {
 		Plan plan = PopulationUtils.createPlan();
@@ -47,7 +47,7 @@ public class PlanGson{
 			}else {
 				aa.endTime = 27*3600.;
 			}
-			aa.facilityId = a.getFacilityId().toString();
+			if(a.getFacilityId()!=null)aa.facilityId = a.getFacilityId().toString();
 			aa.linkId = a.getLinkId().toString();
 			aa.maximumDuration = aa.endTime-previousActEndTime;
 			if(ifCar)carLocation =aa.activityType+"_"+aa.facilityId;
@@ -61,12 +61,16 @@ public class PlanGson{
 			if(i<trips.size()) {
 				LegGson l = new LegGson();
 				String mode = TripStructureUtils.getRoutingModeIdentifier().identifyMainMode(trips.get(i).getTripElements());
+//				if(trips.get(i).getOriginActivity().getType().contains("plugout")||trips.get(i).getDestinationActivity().getType().contains("plugin")) {
+//					System.out.println();
+//				}
 				l.mode = mode;
 				l.distance = NetworkUtils.getEuclideanDistance(activities.get(i+1).getCoord(),a.getCoord());
 				p.activitiesAndLegs.add(l);
 			}
 			
 		}
+		p.personId = pl.getPerson().getId().toString();
 		return p;
 			
 	}

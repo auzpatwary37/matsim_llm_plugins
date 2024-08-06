@@ -142,7 +142,10 @@ public static final String PlanGson_Schema = "{\n"
         
         activitiesAndLegs.put("items", items);
         properties.put("activitiesAndLegs", activitiesAndLegs);
-
+        properties.put("personId", Map.of(
+        		 "type", "string",
+                 "description", "Id of the person the plan belongs to."
+        		));
         parameters.setProperties(properties);
         parameters.setRequired(new String[]{"activitiesAndLegs"});
 
