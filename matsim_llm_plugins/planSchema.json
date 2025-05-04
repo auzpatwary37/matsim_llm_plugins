@@ -6,6 +6,10 @@
     "parameters": {
       "type": "object",
       "properties": {
+        "personId": {
+          "type": "string",
+          "description": "Id of the person the plan belongs to."
+        },
         "activitiesAndLegs": {
           "description": "Alternates between ActivityGson and LegGson starting and ending with ActivityGson.",
           "type": "array",
@@ -29,16 +33,16 @@
           "type": "object",
           "properties": {
             "carLocation": {
-              "description": "Current location of the agent\u0027s car. Should be same as the activity type.",
-              "type": "string"
+              "type": "string",
+              "description": "Current location of the agent\u0027s car. Should be same as the activity type."
             },
             "endTime": {
-              "description": "End time of this activity in seconds. Ranges from 0 to 86400.",
-              "type": "number"
+              "type": "number",
+              "description": "End time of this activity in seconds. Ranges from 0 to 86400."
             },
             "id": {
-              "description": "Id to identify a specific activity in a plan. The id should be the activity type + \"___\"+the order of occurance of this type of activity in the plan.",
-              "type": "string"
+              "type": "string",
+              "description": "Id to identify a specific activity in a plan. The id should be the activity type + \"___\"+the order of occurance of this type of activity in the plan."
             },
             "activityType": {
               "description": "Type of the activity performed",

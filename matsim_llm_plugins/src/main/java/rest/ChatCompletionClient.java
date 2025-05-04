@@ -55,9 +55,9 @@ public class ChatCompletionClient {
     
     public static void main(String[] args) {
     	ChatCompletionClient client = new ChatCompletionClient.Builder()
-    			.setChatAPI_URL("http://localhost:11434/v1/chat/completions")//"https://api.openai.com/v1/chat/completions"http://localhost:1234/v1/chat/completions
+    			.setChatAPI_URL("http://localhost:1234/v1/chat/completions")//"https://api.openai.com/v1/chat/completions"http://localhost:11434/v1/chat/completions
     			.setEmbeddingAPI_URL("http://localhost:1234/v1/embeddings")
-    			.setModelName("llama3")//gpt-3.5-turbo
+    			.setModelName("qwen-14B")//gpt-3.5-turbo
     			//.setauthorization(APIKeys.GPT_KEY)
     			//.setOrganization(APIKeys.ORGANIZATION_ID)
     			//.setProject(APIKeys.PROJECT_ID)
@@ -68,19 +68,21 @@ public class ChatCompletionClient {
     			.build();
     	//client.getResponse("Answer in academic language.", "Introduce yourself.");
     	BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
-    	String system = Prompt.SystemMessageFunctionCalling;
+    	String system = Prompt.SystemPrompt_April2025;
     	while (true) {
             System.out.print("\nUser: ");
-            String input = null;
+            String input = Prompt.UserPrompt_April2025;
 			try {
-				input = reader.readLine();
+				input = input + reader.readLine();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
             String out = client.getResponse(system, input).getContent();
+            String outTool = client.getResponse(system, input).getToolCalls().toString();
             System.out.print("AI: ");
             System.out.println(out);
+            System.out.println("AI_TOOL: "+outTool);
         }
 	}
 
