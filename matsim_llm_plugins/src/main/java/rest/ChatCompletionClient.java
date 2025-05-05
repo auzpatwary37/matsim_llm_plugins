@@ -10,7 +10,10 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 
-import apikeys.APIKeys;
+import chatresponse.IChatCompletionResponse;
+import chatresponse.IMessage;
+import chatresponse.LmStudioChatResponse;
+import chatresponse.OpenAIChatResponse;
 import gsonprocessor.PlanSchema;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -78,8 +81,9 @@ public class ChatCompletionClient {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-            String out = client.getResponse(system, input).getContent();
-            String outTool = client.getResponse(system, input).getToolCalls().toString();
+            IMessage response = client.getResponse(system, input);
+            String out = response.getContent();
+            String outTool = response.getToolCalls().toString();
             System.out.print("AI: ");
             System.out.println(out);
             System.out.println("AI_TOOL: "+outTool);
@@ -203,7 +207,7 @@ public class ChatCompletionClient {
     	return this.tool_choice;
     }
 
-    public Message getResponse(String systemMessage,String userMessage) {
+    public IMessage getResponse(String systemMessage,String userMessage) {
         try {
         	prompt+="\nUser:"+userMessage;
             // Create the request payload
@@ -271,7 +275,7 @@ public class ChatCompletionClient {
         
 
             // Parse the response
-            ChatCompletionResponse chatCompletionResponse = gson.fromJson(responseBody, ChatCompletionResponse.class);
+            IChatCompletionResponse chatCompletionResponse = gson.fromJson(responseBody, LmStudioChatResponse.class);
 
             // Print the response details
             //System.out.println("Response ID: " + chatCompletionResponse.getId());
@@ -282,7 +286,7 @@ public class ChatCompletionClient {
             if(chatCompletionResponse.getChoices()==null) {
             	System.out.println(responseBody);
             }
-            Message response = chatCompletionResponse.getChoices().get(0).getMessage();
+            IMessage response = chatCompletionResponse.getChoices().get(0).getMessage();
             //String functionCall = chatCompletionResponse.getChoices().get(0).getMessage().getToolCalls().get(0).getFunction().getArguments();
             
 //            if(response.getToolCalls().isEmpty()) {
