@@ -8,7 +8,7 @@ import com.google.gson.annotations.SerializedName;
 import tools.IToolCall;
 import chatcommons.Role;
 
-public class LmStudioChatResponse implements IChatCompletionResponse {
+public class OpenAiChatResponse implements IChatCompletionResponse {
 
     private String id;
     private String object;
@@ -61,6 +61,7 @@ public class LmStudioChatResponse implements IChatCompletionResponse {
         private String type;
         private Function function;
 
+        @Override
         public String getId() {
             return id;
         }
@@ -122,8 +123,6 @@ public class LmStudioChatResponse implements IChatCompletionResponse {
             return totalTokens;
         }
     }
-
-    // Implementation of IChatCompletionResponse
 
     @Override
     public IResponseMessage getMessage() {
