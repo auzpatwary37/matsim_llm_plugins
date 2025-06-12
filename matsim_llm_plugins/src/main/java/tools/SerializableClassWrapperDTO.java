@@ -2,9 +2,9 @@ package tools;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.List;
 import java.util.function.Function;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 /**
@@ -20,8 +20,8 @@ import com.google.gson.JsonObject;
  *
  * Example:
  * <pre>{@code
- * ToolArgument<Person, PojoWrapperDTO<Person>> arg =
- *     PojoWrapperDTO.forPojo("person", Person.class);
+ * ToolArgument<Person, SerializableClassWrapperDTO<Person>> arg =
+ *     SerializableClassWrapperDTO.forClass("person", Person.class);
  * }</pre>
  *
  * @param <T> the POJO type (base class)
@@ -58,10 +58,10 @@ public class SerializableClassWrapperDTO<T> extends ToolArgumentDTO<T> {
      * @throws IllegalArgumentException if the class is not structurally valid
      */
     public static <T> ToolArgument<T, SerializableClassWrapperDTO<T>> forClass(String name, Class<T> pojoClass) {
-    	ensureSerializable(pojoClass);
+        ensureSerializable(pojoClass);
         return new ToolArgument<>(
             name,
-            (Class<SerializableClassWrapperDTO<T>>) (Class<?>) SerializableClassWrapperDTO.class, // safe due to use of wrapper
+            (Class<SerializableClassWrapperDTO<T>>) (Class<?>) SerializableClassWrapperDTO.class, // safe due to wrapper usage
             (Function<T, SerializableClassWrapperDTO<T>>) SerializableClassWrapperDTO::new,
             generateSchema(pojoClass)
         );
@@ -89,11 +89,23 @@ public class SerializableClassWrapperDTO<T> extends ToolArgumentDTO<T> {
     }
 
     /**
-     * Generates a simple JSON schema from a POJO's public fields.
-     * Maps Java types to OpenAI-compatible schema types.
+     * Generates a simple JSON schema from a POJO's declared fields.
+     * Maps Java types to OpenAI-compatible JSON types.
+     *
+     * Resulting schema format:
+     * {
+     *   "type": "object",
+     *   "properties": {
+     *     "name": { "type": "string" },
+     *     "age":  { "type": "number" },
+     *     "flag": { "type": "boolean" }
+     *   },
+     *   "required": ["name", "age", "flag"]
+     * }
      */
     public static JsonObject generateSchema(Class<?> clazz) {
         JsonObject properties = new JsonObject();
+        JsonArray required = new JsonArray();
 
         for (Field field : clazz.getDeclaredFields()) {
             if (Modifier.isStatic(field.getModifiers())) continue;
@@ -101,31 +113,33 @@ public class SerializableClassWrapperDTO<T> extends ToolArgumentDTO<T> {
             JsonObject fieldSchema = new JsonObject();
             Class<?> type = field.getType();
 
-            if (type == String.class) fieldSchema.addProperty("type", "string");
-            else if (type == int.class || type == Integer.class ||
-                     type == double.class || type == Double.class ||
-                     type == float.class || type == Float.class ||
-                     type == long.class || type == Long.class) {
+            // Map primitive types to OpenAI-compatible JSON types
+            if (type == String.class) {
+                fieldSchema.addProperty("type", "string");
+            } else if (type == int.class || type == Integer.class ||
+                       type == double.class || type == Double.class ||
+                       type == float.class || type == Float.class ||
+                       type == long.class || type == Long.class) {
                 fieldSchema.addProperty("type", "number");
             } else if (type == boolean.class || type == Boolean.class) {
                 fieldSchema.addProperty("type", "boolean");
             } else {
-                fieldSchema.addProperty("type", "object"); // fallback for complex types
+                fieldSchema.addProperty("type", "object"); // fallback for unsupported/nested types
             }
 
             properties.add(field.getName(), fieldSchema);
+            required.add(field.getName()); // assume all fields are required
         }
 
         JsonObject schema = new JsonObject();
         schema.addProperty("type", "object");
         schema.add("properties", properties);
+        schema.add("required", required);
         return schema;
     }
 
-	@Override
-	public boolean isVerified() {
-		// TODO Auto-generated method stub
-		return true;
-	}
+    @Override
+    public boolean isVerified() {
+        return true; // no validation logic for wrapper — assumed valid after deserialization
+    }
 }
-

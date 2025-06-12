@@ -7,7 +7,8 @@ public enum Role {
     USER("user"),
     SYSTEM("system"),
     ASSISTANT("assistant"),
-    TOOL("tool");
+    TOOL("tool"),
+    TOOL_RESPONSE("tool_response");
 
     private final String value;
 

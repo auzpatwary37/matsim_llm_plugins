@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import rag.IVectorDB;
@@ -12,6 +13,7 @@ import rag.IVectorDB;
 /**
  * A functional tool that can be called by a language model.
  * Each tool should implement this interface and be registered with a ToolManager.
+ * the type argument T is the class the object class that the tool call sends back as part of the ResponseMessage container for MATSim Consumption. 
  */
 public interface ITool<T>{
 	
@@ -54,15 +56,21 @@ public interface ITool<T>{
         parameters.addProperty("type", "object");
 
         JsonObject properties = new JsonObject();
+        JsonArray required = new JsonArray();
+
         for (Map.Entry<String, ToolArgument<?, ? extends ToolArgumentDTO<?>>> entry : getRegisteredArguments().entrySet()) {
-            properties.add(entry.getKey(), entry.getValue().getDTOSchema());
+            String argName = entry.getKey();
+            properties.add(argName, entry.getValue().getDTOSchema());
+            required.add(argName);
         }
 
         parameters.add("properties", properties);
-        schema.add("parameters", parameters);
+        parameters.add("required", required);  // Add this line
 
+        schema.add("parameters", parameters);
         return schema;
     }
+
 
 
     /**

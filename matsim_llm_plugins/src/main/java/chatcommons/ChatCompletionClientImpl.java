@@ -1,25 +1,26 @@
 package chatcommons;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
-
-import org.matsim.core.config.Config;
-import org.matsim.core.config.ConfigGroup;
+import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.inject.Inject;
 
+import apikeys.APIKeys;
 import chatrequest.IChatCompletionRequest;
 import chatrequest.IRequestMessage;
 import chatrequest.LmStudioChatRequest;
 import chatrequest.OpenAiChatRequest;
+import chatrequest.SimpleRequestMessage;
 import chatresponse.IChatCompletionResponse;
 import chatresponse.LmStudioChatResponse;
 import chatresponse.OpenAiChatResponse;
-import matsimBinding.BackendType;
 import matsimBinding.LLMConfigGroup;
+import matsimBinding.LLMConfigGroup.BackendType;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -38,7 +39,7 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
     }
 
     @Override
-    public IChatCompletionResponse query(List<IChatMessage> history, IRequestMessage userMessage, List<JsonObject> tools) {
+    public IChatCompletionResponse query(List<IChatMessage> history, IRequestMessage userMessage, List<JsonObject> tools, Map<String,Boolean> ifToolDummy) {
         String endpoint = config.getFullLlmUrl();
         BackendType backend = config.getBackendEnum();
         history.add(userMessage);
@@ -51,7 +52,7 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
         };
 
         String body = builder.serializeToHttpBody(
-            history, tools, "auto", config.getTemperature(), config.getMaxTokens(), config.getModelName(), false
+            history, tools,ifToolDummy, "auto", config.getTemperature(), config.getMaxTokens(), config.getModelName(), false
         );
 
         Request request = new Request.Builder()
@@ -60,13 +61,16 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
                 .addHeader("Authorization", "Bearer " + config.getAuthorization())
                 .post(RequestBody.create(body, MediaType.parse("application/json")))
                 .build();
+        
+        System.out.println(body);
+        System.out.println(request.toString());
 
         try (Response response = httpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new IOException("Unexpected HTTP code: " + response);
-            }
+            String responseBody = response.body() != null ? response.body().string() : "(no body)";
 
-            String responseBody = Objects.requireNonNull(response.body()).string();
+            if (!response.isSuccessful()) {
+                throw new IOException("HTTP " + response.code() + " error from OpenAI: " + responseBody);
+            }
 
             return switch (backend) {
                 case OPENAI -> gson.fromJson(responseBody, OpenAiChatResponse.class);
@@ -76,11 +80,13 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
         } catch (IOException e) {
             throw new RuntimeException("Failed to call LLM endpoint: " + e.getMessage(), e);
         }
+
     }
 
     @Override
     public LLMConfigGroup getLLMConfig() {
         return config;
     }
+    
 }
 

@@ -16,6 +16,7 @@ import rag.IVectorDB;
 public class DefaultToolManager implements IToolManager {
 
     private final Map<String, ITool<?>> toolRegistry = new HashMap<>();
+    private Map<String,Boolean> toolIfDummy;
 
     @Override
     public void registerTool(ITool<?> tool) {
@@ -73,4 +74,16 @@ public class DefaultToolManager implements IToolManager {
 
         return new SimpleRequestMessage(Role.TOOL, null, forLLM);
     }
+
+	@Override
+	public Map<String, Boolean> getIfToolDummy() {
+		if(this.toolIfDummy==null) {
+			Map<String,Boolean> ifDummy = new HashMap<>();
+			this.toolRegistry.entrySet().forEach(t->{
+				ifDummy.put(t.getValue().getName(), t.getValue().isDummy());
+			});
+			this.toolIfDummy = ifDummy;
+		}
+		return toolIfDummy;
+	}
 }

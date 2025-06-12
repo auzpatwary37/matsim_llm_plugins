@@ -1,6 +1,7 @@
 package tools;
 
 import java.util.List;
+import java.util.Map;
 
 import com.google.gson.JsonObject;
 
@@ -54,4 +55,7 @@ public interface IToolManager {
      * @return A single IRequestMessage with role = "tool", or null if no responses should be sent
      */
     IRequestMessage buildToolResponseMessage(List<IToolCall> calls, IVectorDB vectorDB);
+    
+    
+    Map<String,Boolean> getIfToolDummy();
 }

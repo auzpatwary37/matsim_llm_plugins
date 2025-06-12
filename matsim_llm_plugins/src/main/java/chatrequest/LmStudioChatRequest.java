@@ -1,15 +1,16 @@
 package chatrequest;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import chatcommons.IChatMessage;
 import chatresponse.IResponseMessage;
+import tools.IToolCall;
+import tools.IToolResponse;
 
 /**
  * LmStudio-compatible request builder.
@@ -22,70 +23,88 @@ public class LmStudioChatRequest implements IChatCompletionRequest {
     @Override
     public String serializeToHttpBody(List<IChatMessage> messages,
                                       List<JsonObject> tools,
+                                      Map<String, Boolean> toolIfDummy,
                                       String toolChoice,
                                       double temperature,
                                       int maxTokens,
                                       String modelName,
                                       boolean stream) {
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("model", modelName);
-        payload.put("temperature", temperature);
-        payload.put("max_tokens", maxTokens);
-        payload.put("stream", false); // LM Studio doesn't support streaming properly
+        JsonObject payload = new JsonObject();
+        payload.addProperty("model", modelName);
+        payload.addProperty("temperature", temperature);
+        payload.addProperty("max_tokens", maxTokens);
+        payload.addProperty("stream", false); // LM Studio doesn't support streaming
 
-        // Convert messages
-        payload.put("messages", messages.stream().flatMap(m -> {
-            List<Map<String, Object>> outputMessages = new java.util.ArrayList<>();
+        JsonArray messageArray = new JsonArray();
 
-            // Base message
-            Map<String, Object> baseMessage = new HashMap<>();
-            baseMessage.put("role", m.getRole().name().toLowerCase());
-            baseMessage.put("content", m.getContent());
+        for (IChatMessage m : messages) {
 
-            // --- Handle tool calls if it's a response ---
-            if (m instanceof IResponseMessage response && response.getToolCalls() != null) {
-                List<Map<String, Object>> toolCalls = response.getToolCalls().stream().map(tc -> {
-                    Map<String, Object> toolCallMap = new HashMap<>();
-                    toolCallMap.put("id", tc.getId());
-                    toolCallMap.put("type", "function");
-                    toolCallMap.put("function", Map.of(
-                        "name", tc.getName(),
-                        "arguments", tc.getArguments()
-                    ));
-                    return toolCallMap;
-                }).toList();
-                baseMessage.put("tool_calls", toolCalls);
-            }
+            // === Case 3 or 4: Response message (assistant)
+            if (m instanceof IResponseMessage response) {
+                JsonObject mJson = new JsonObject();
+                mJson.addProperty("role", "assistant");
+                mJson.addProperty("content", response.getContent());
 
-            outputMessages.add(baseMessage);
+                if (response.getToolCalls() != null && !response.getToolCalls().isEmpty()) {
+                    JsonArray toolCalls = new JsonArray();
+                    for (IToolCall tc : response.getToolCalls()) {
+                        if (!toolIfDummy.getOrDefault(tc.getName(), false)) {
+                            JsonObject toolCall = new JsonObject();
+                            toolCall.addProperty("id", tc.getId());
+                            toolCall.addProperty("type", "function");
 
-            // --- Handle tool responses if it's a request ---
-            if (m instanceof IRequestMessage request && request.getToolResponses() != null) {
-                for (var tr : request.getToolResponses()) {
-                    Map<String, Object> toolResponse = new HashMap<>();
-                    toolResponse.put("role", "tool");
-                    toolResponse.put("tool_call_id", tr.getToolCallId());
-                    toolResponse.put("name", tr.getName());
-                    toolResponse.put("content", tr.getResponseJson());
-                    outputMessages.add(toolResponse);
+                            JsonObject functionObj = new JsonObject();
+                            functionObj.addProperty("name", tc.getName());
+                            functionObj.addProperty("arguments", tc.getArguments());
+
+                            toolCall.add("function", functionObj);
+                            toolCalls.add(toolCall);
+                        }
+                    }
+                    if (toolCalls.size() > 0) {
+                        mJson.add("tool_calls", toolCalls);
+                    }
                 }
+
+                messageArray.add(mJson);
+                continue;
             }
 
-            return outputMessages.stream();
-        }).toList());
+            // === Case 2: Tool responses only
+            if (m instanceof IRequestMessage request && request.getToolResponses() != null && !request.getToolResponses().isEmpty()) {
+                for (IToolResponse<?> tr : request.getToolResponses()) {
+                    if (tr.isForLLM()) {
+                        JsonObject toolResponse = new JsonObject();
+                        toolResponse.addProperty("role", "tool");
+                        toolResponse.addProperty("tool_call_id", tr.getToolCallId());
+                        toolResponse.addProperty("name", tr.getName());
+                        toolResponse.addProperty("content", tr.getResponseJson());
+                        messageArray.add(toolResponse);
+                    }
+                }
+                continue; // skip base message
+            }
 
+            // === Case 1: Normal system/user message
+            JsonObject mJson = new JsonObject();
+            mJson.addProperty("role", m.getRole().name().toLowerCase());
+            mJson.addProperty("content", m.getContent());
+            messageArray.add(mJson);
+        }
 
-        // Wrap each tool in { "type": "function", "function": tool }
+        payload.add("messages", messageArray);
+
+        // === Tools ===
         if (tools != null && !tools.isEmpty()) {
-            List<Map<String, Object>> toolList = tools.stream().map(tool -> {
-                Map<String, Object> wrapper = new HashMap<>();
-                wrapper.put("type", "function");
-                wrapper.put("function", tool);
-                return wrapper;
-            }).collect(Collectors.toList());
-
-            payload.put("tools", toolList);
+            JsonArray toolArray = new JsonArray();
+            for (JsonObject tool : tools) {
+                JsonObject wrapper = new JsonObject();
+                wrapper.addProperty("type", "function");
+                wrapper.add("function", tool);
+                toolArray.add(wrapper);
+            }
+            payload.add("tools", toolArray);
         }
 
         return gson.toJson(payload);

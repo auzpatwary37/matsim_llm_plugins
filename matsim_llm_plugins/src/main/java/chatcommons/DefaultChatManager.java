@@ -38,7 +38,7 @@ public class DefaultChatManager implements IChatManager {
 
     @Override
     public Map<String, IToolResponse<?>> submit(IRequestMessage message) {
-        history.add(message);
+//        history.add(message);
         Map<String, IToolResponse<?>> toolResponses = new HashMap<>();
 
         while (true) {
@@ -50,11 +50,15 @@ public class DefaultChatManager implements IChatManager {
             }
 
             List<IToolResponse<?>> newResponses = new ArrayList<>();
+            boolean ifNonDummy = false;
             for (var call : response.getToolCalls()) {
                 try {
                     IToolResponse<?> toolResult = toolManager.runToolCall(call, this.vectorDB);
                     newResponses.add(toolResult);
                     toolResponses.put(call.getId(), toolResult);
+                    if(toolResult.isForLLM()) {
+                    	ifNonDummy = true;
+                    }
                 } catch (Exception ex) {
 //                    IToolResponse<?> errorResponse = toolManager.handleError(call, ex); the error is handled in tool call internally 
                 	// a tool response is gnenerated anyway with the error message instead of the actual response. 
@@ -64,8 +68,11 @@ public class DefaultChatManager implements IChatManager {
             }
 
             IRequestMessage toolMessage = new SimpleRequestMessage(Role.TOOL,"",newResponses);
-            history.add(toolMessage);
+//            history.add(toolMessage);
             message = toolMessage;
+            if(!ifNonDummy) {
+            	break;
+            }
         }
 
         return toolResponses;
@@ -93,7 +100,7 @@ public class DefaultChatManager implements IChatManager {
             }
         }
 
-        IChatCompletionResponse completion = llmClient.query(history, enrichedMessage, toolManager.getAllToolSchemas());
+        IChatCompletionResponse completion = llmClient.query(history, enrichedMessage, toolManager.getAllToolSchemas(), toolManager.getIfToolDummy());
         return completion.getMessage();
     }
 

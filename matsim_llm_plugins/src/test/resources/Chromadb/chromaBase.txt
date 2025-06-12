@@ -1,0 +1,18 @@
+What is MATSim?
+MATSim (Multi-Agent Transport Simulation) is an open-source, activity-based, agent-based transport simulation framework. It is designed to model large-scale transportation scenarios by simulating the daily travel behavior of individual agents (representing people) over a synthetic or real population.
+
+Each agent in MATSim has a daily activity plan — including home, work, shopping, and other activities — and chooses routes and modes of transport based on personal preferences and network conditions. MATSim then simulates the execution of these plans on a detailed transport network and evaluates performance based on travel times, delays, and other metrics.
+
+Key Features
+Activity-Based Modeling: Agents follow complete daily schedules rather than single trips.
+Agent-Based Simulation: Individual decision-making allows for rich behavioral dynamics.
+Iterative Learning: Agents revise plans over multiple iterations to optimize utility.
+Scalability: Efficiently simulates millions of agents and large networks.
+Modular Architecture: Supports plugins for demand modeling, transit, freight, emissions, and now even LLM-based decision-making.
+Applications
+Urban mobility and infrastructure planning
+Evaluation of transport policies (e.g., congestion pricing, new transit lines)
+EV charging behavior and infrastructure placement
+Disaster evacuation and emergency scenarios
+Integration with AI and machine learning for dynamic decision support
+Let me know if you'd like a specific focus — e.g., for a workshop, a poster, a grant proposal, or integration with AI (like your MATSim–LLM work).

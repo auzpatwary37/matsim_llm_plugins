@@ -2,6 +2,7 @@ package chatcommons;
 
 
 import java.util.List;
+import java.util.Map;
 
 import com.google.gson.JsonObject;
 
@@ -19,7 +20,7 @@ public interface IChatCompletionClient {
      * @param userMessage  The current user message to send
      * @return The assistant's response (may contain tool calls)
      */
-    IChatCompletionResponse query(List<IChatMessage> history, IRequestMessage userMessage, List<JsonObject> tools);
+    IChatCompletionResponse query(List<IChatMessage> history, IRequestMessage userMessage, List<JsonObject> tools, Map<String,Boolean> ifToolDummy);
 
     /**
      * Returns the name of the underlying LLM model used.
