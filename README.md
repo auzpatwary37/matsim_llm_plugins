@@ -125,9 +125,9 @@ To enable context injection via RAG:
 download and install docker.
 
 ```bash
-docker run -p 8000:8000 princepspolaris/chroma (this is a old version of chroma with v1 rest api. The akimos java client for chromadb only supports v1 api. V2 support is planned.)
+docker run -p 8000:8000 princepspolaris/chroma 
 ```
-
+(this is a old version of chroma with v1 rest api. The akimos java client for chromadb only supports v1 api. V2 support is planned.)
 * Default endpoint: `http://localhost:8000`
 * Used by Akimos Java client for embedding and querying
 * Requires no manual configuration beyond port exposure
