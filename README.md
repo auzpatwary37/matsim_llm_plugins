@@ -49,6 +49,10 @@ This plugin integrates MATSim with Large Language Models (LLMs) via an OpenAI-co
 
 ## ⚙️ Architecture
 
+<img width="872" alt="image" src="https://github.com/user-attachments/assets/c751970a-6970-4a9b-8fc9-08447dee2952" />
+
+
+
 ### 🧠 ChatManager (Core Coordinator for individual chat thread)
 
 The `ChatManager` handles LLM conversations and decision logic for a single chat thread:
