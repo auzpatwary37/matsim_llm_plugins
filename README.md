@@ -6,44 +6,66 @@ This plugin connects MATSim (Multi-Agent Transport Simulation) to Large Language
 
 ## Overview
 
-### Purpose
+### 🧠 Purpose
 
-This plugin enables:
+This plugin integrates MATSim with Large Language Models (LLMs) via an OpenAI-compatible tool-calling interface, enabling rich, context-aware, object-driven decision-making within mobility simulations. It supports:
 
-* Tool-based interaction between MATSim agents and LLMs
-* Execution of Java-defined tools (e.g., with objects as tool arguments)
-* Optional use of vector-based retrieval for context injection
-* Optionally collect jsonl datasets for distillation of smaller LLM models through finetuning
+- **Agent-specific conversational threads** via `ChatManager`, allowing each MATSim agent (person or vehicle) to maintain its own chat state, invoke tools, and receive responses across time and decisions.
+
+- **Multi-step, parallel tool execution**: The LLM may invoke multiple tools in one response, which are executed and resolved automatically before continuing the conversation.
+
+- **Real-time and modular context enrichment** using Retrieval-Augmented Generation (RAG), with support for both:
+  - **Static context**: Large datasets like link properties, travel times, charging prices, or facility data.
+  - **Dynamic context**: Per-agent states or runtime knowledge inserted into vector databases and queried on the fly.
+
+- **Declarative tool calling with full object support**:
+  - Tools are defined with typed Java DTOs that serialize into LLM-visible schemas.
+  - Arguments are automatically parsed back into DTOs, verified, and converted into rich Java domain objects.
+  - Tool responses can be returned to the LLM or directly consumed by MATSim as simulation inputs.
+
+- **Separation of real vs dummy tools**: Tools can either provide LLM-visible outputs or simply reconstruct internal objects (like a charging plan), enabling flexible chaining of decisions and postprocessing.
+
+- **Pluggable modular architecture**: The system is backend-agnostic and supports:
+  - LLM inference via OpenAI, LM Studio, Ollama
+  - Embedding models for RAG (e.g., HuggingFace)
+  - Swappable retrieval databases (e.g., ChromaDB)
+  - Extensible tool registry and DTO system
+
+- **Support for dataset generation and finetuning**: JSONL logging (planned) can capture multi-turn decision traces and tool inputs/outputs, enabling fine-tuning or distillation of smaller models.
+
 
 
 ### Key Features
 
-* OpenAI-style tool calling in Java
+* OpenAI-style multi step tool calling in Java
+* Tool register via tool manager that automatically handles iterative tool calls (multi step communications with LLM)
+* Individual chat thread management with tool calling. 
 * Modular backend support (OpenAI, LM Studio, Ollama)
 * Pluggable tools with automatic schema generation via DTOs
-* Retrieval integration with ChromaDB and HuggingFace embeddings
+* Under the hood Retrieval integration with ChromaDB and HuggingFace embeddings with support for static and runtime embeddings.
+* MATSim integration (ChatManagerContiner, ChatCompletionClient, VectorDB, ToolManager available anywhere within MATSim).
 
 ---
 
 ## ⚙️ Architecture
 
-### 🧠 ChatManager (Core Coordinator)
+### 🧠 ChatManager (Core Coordinator for individual chat thread)
 
-The `ChatManager` handles LLM conversations and decision logic:
+The `ChatManager` handles LLM conversations and decision logic for a single chat thread:
 
 * Maintains full message history as `List<IChatMessage>`
-* Sends requests to the selected `IChatCompletionClient`
+* Sends requests to the selected `IChatCompletionClient` that manages context retreival under the hood.
 * Receives tool calls and dispatches them to the `ToolManager`
-* Injects tool responses into message history for a second LLM round
-* Optionally prepends RAG context from the retrieval module
+* Injects tool responses into message history for multiple LLM rounds for relevant tools
+* Prepares objects at the same time to be consumed by MATSim. 
+
 
 ### 🛠 ToolManager & Tool Framework
 
 * Tools are Java classes implementing `ITool`
-* Tool arguments are defined using `ToolArgument<T>` and `ToolArgumentDTO<T>`
-* DTOs expose a schema for LLM and parse responses into domain objects
-* Two tool types:
-
+* Tool arguments are defined using `ToolArgument<T>` with T as the matsim consumable and `ToolArgumentDTO<T>` as the POJO class for GSON serialization
+* DTOs expose a schema for LLM and parse responses into domain objects which then automatically is merged to generate ToolSchema.
+* Allows for:
   * **Real Tools**: LLM uses the returned result
   * **Dummy Tools**: Results are consumed by MATSim (not shown to LLM)
 * Tools register themselves via the `ToolRegistry`
@@ -54,7 +76,7 @@ Implements `IChatCompletionClient` to interact with different LLM providers:
 
 * **OpenAI**: via HTTPS and bearer token
 * **LM Studio / Ollama**: via local OpenAI-compatible endpoints
-* Each backend has its own `*ChatRequest` and `*ChatResponse` implementation
+* Each backend has its own `*ChatRequest` and `*ChatResponse` implementation for serializing and desrializing. 
 
 ### 📚 Retrieval (RAG)
 
@@ -80,7 +102,7 @@ Optional module to provide context to LLMs:
 #### LM Studio
 
 1. Download and launch LM Studio
-2. Load a model (e.g., `llama3`) in chat mode
+2. Load a model (e.g., `llama3`) and an embedding model in server mode 
 3. Enable the **OpenAI-compatible API** in settings
 4. Default endpoint: `http://localhost:1234/v1/chat/completions`
 
@@ -91,14 +113,15 @@ ollama run llama3
 ```
 
 * Default endpoint: `http://localhost:11434/v1/chat/completions`
-* No key required
+* (currently not implemented)
 
 ### 📚 Vector DB (ChromaDB)
 
 To enable context injection via RAG:
+download and install docker.
 
 ```bash
-docker run -p 8000:8000 ghcr.io/chroma-core/chroma:latest
+docker run -p 8000:8000 princepspolaris/chroma (this is a old version of chroma with v1 rest api. The akimos java client for chromadb only supports v1 api. V2 support is planned.)
 ```
 
 * Default endpoint: `http://localhost:8000`
@@ -109,45 +132,76 @@ docker run -p 8000:8000 ghcr.io/chroma-core/chroma:latest
 
 ## 🛠 How to Define and Use Tools
 
+Look into the test cases and the ExampleTools class for detailed tool generations
+
 ### Tool Definition Example
 
 ```java
-public class EchoTool implements ITool {
+class EchoTool implements ITool<String> {
+
+    private Map<String, ToolArgument<?, ? extends ToolArgumentDTO<?>>> arguments = new HashMap<>();
+
     public EchoTool() {
-        addArgument("message", ToolArgument.of(new SimpleStringDTO()));
-        addArgument("shout", ToolArgument.of(new SimpleBooleanDTO()));
+        // Register arguments
+        registerArgument(SimpleStringDTO.forArgument("message"));
+        registerArgument(SimpleBooleanDTO.forArgument("shout"));
     }
 
-    public IToolResponse<String> run(Map<String, ToolArgumentDTO<?>> args) {
-        String msg = ((SimpleStringDTO) args.get("message")).getValue();
-        boolean shout = ((SimpleBooleanDTO) args.get("shout")).getValue();
-        return new DefaultToolResponse<>(shout ? msg.toUpperCase() : msg);
-    }
+	@Override
+	public IToolResponse<String> callTool(String id, Map<String, Object> arguments, IVectorDB vectorDB) {
+		
+		String msg = (String) arguments.getOrDefault("message", "");
+        boolean shout = Boolean.TRUE.equals(arguments.getOrDefault("shout", ""));
+
+        String result = shout ? msg.toUpperCase() : msg;
+		
+		
+		return new IToolResponse<String>() {
+
+			@Override
+			public String getToolCallOutputContainer() {
+				
+				return result;
+			}
+
+			@Override
+			public boolean isForLLM() {
+				
+				return false;// dummy tool
+			}
+			
+		};
+	}
+
 }
+
 ```
 
 ### Register Tools
 
 ```java
-ToolRegistry.getInstance().registerTool(new EchoTool());
+toolManager.registerTool(new EchoTool()); // toolManager is binded through LLMModule directly from the config.
 ```
 
 ---
 
 ## 🧠 Agent Usage in MATSim
 
-Agents call the `ChatManager` to query LLMs with current state and context:
+Agents use the `ChatManager` to query LLMs with current state and context:
 
 ```java
-ChatManager manager = GlobalRegistry.getChatManager();
-IChatMessage reply = manager.query(messages);
+ChatManager manager = chatManagerContainer.getChatManagers().get(Id<> agentOrVehicleId);
+IRequestMessage req = new SimpleRequestMessage(Role.USER,"message or info goes here");
+manager.submit(req);
 ```
 
-This handles LLM request, tool execution, and second-round reply injection.
+this function internally handles multi step and parallel tool calls and context retreival.
 
 ---
 
 ## 🧾 Configuration (LLMConfigGroup)
+
+All settings (LLM server side, Vector database server side, LLM and embedding models and model parameters are configured using LLMConfigGroup)
 
 ```xml
 <module name="llmConfig">
@@ -156,6 +210,8 @@ This handles LLM request, tool execution, and second-round reply injection.
     <param name="authorization" value="Bearer YOUR_API_KEY"/>
     <param name="embeddingModelName" value="all-MiniLM-L6-v2"/>
     <param name="cleanVectorDbUponCompletion" value="dynamic_only"/>
+...
+...
 </module>
 ```
 
@@ -187,8 +243,6 @@ This handles LLM request, tool execution, and second-round reply injection.
 
 ## 📜 License
 
-To be specified.
+This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
 
 ---
-
-See `doc/index.html` for JavaDoc-based API documentation.
