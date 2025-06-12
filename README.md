@@ -89,9 +89,9 @@ Optional module to provide context to LLMs:
 
 ### 🧩 MATSim Integration
 
-* Integrated using Guice modules
+* Integrated using LLMModule. 
 * Configuration exposed via `LLMConfigGroup`
-* Global access to `ChatManager`, `ToolManager`, and `Retrieval` via providers
+* Global access to `ChatManagerContainer`, `ToolManager`, and `VectorDB` via injection.
 
 ---
 
