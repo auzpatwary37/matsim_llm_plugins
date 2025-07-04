@@ -1,5 +1,8 @@
 package tools;
 
+import java.util.List;
+import java.util.Map;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -18,7 +21,7 @@ public class SimpleStringDTO extends ToolArgumentDTO<String> {
     }
 
     @Override
-    public String toBaseClass() {
+    public String toBaseClass(Map<String, Object> context) {
         return value;
     }
 

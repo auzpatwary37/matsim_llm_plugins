@@ -1,6 +1,7 @@
 package tools;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.google.gson.JsonObject;
@@ -10,6 +11,8 @@ import rag.IVectorDB;
 public class ExampleTool implements ITool<ExampleTool.ExampleOutput> {
 
     private final Map<String, ToolArgument<?, ? extends ToolArgumentDTO<?>>> arguments = new HashMap<>();
+    private Map<String, Object> context = new HashMap<>();
+    
 
     public ExampleTool() {
         registerArgument(new ToolArgument<>(
@@ -78,7 +81,7 @@ public class ExampleTool implements ITool<ExampleTool.ExampleOutput> {
         public String id;
         public int count;
 
-        @Override public CustomInput toBaseClass() {
+        @Override public CustomInput toBaseClass(Map<String, Object> context) {
             CustomInput c = new CustomInput();
             c.id = id;
             c.count = count;
@@ -120,6 +123,23 @@ public class ExampleTool implements ITool<ExampleTool.ExampleOutput> {
 	@Override
 	public Class<ExampleOutput> getOutputClass() {
 		return ExampleOutput.class;
+	}
+
+	@Override
+	public Map<String, Object> getContextObject() {
+		// TODO Auto-generated method stub
+		return this.context;
+	}
+
+	@Override
+	public void setContextObject(Map<String, Object> context) {
+		this.context = context;
+	}
+
+	@Override
+	public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context)
+			throws VerificationFailedException {
+
 	}
 
 	

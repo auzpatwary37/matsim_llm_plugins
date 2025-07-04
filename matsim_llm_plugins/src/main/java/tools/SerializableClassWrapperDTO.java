@@ -2,6 +2,8 @@ package tools;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import com.google.gson.JsonArray;
@@ -43,7 +45,7 @@ public class SerializableClassWrapperDTO<T> extends ToolArgumentDTO<T> {
      * Returns the original base class instance.
      */
     @Override
-    public T toBaseClass() {
+    public T toBaseClass(Map<String, Object> context) {
         return instance;
     }
 

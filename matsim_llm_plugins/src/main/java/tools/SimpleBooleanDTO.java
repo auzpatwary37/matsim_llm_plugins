@@ -1,5 +1,8 @@
 package tools;
 
+import java.util.List;
+import java.util.Map;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -18,7 +21,7 @@ public class SimpleBooleanDTO extends ToolArgumentDTO<Boolean> {
     }
 
     @Override
-    public Boolean toBaseClass() {
+    public Boolean toBaseClass(Map<String, Object> context) {
         return value;
     }
 

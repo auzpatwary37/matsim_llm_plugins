@@ -27,6 +27,7 @@ import tools.SimpleDoubleDTO;
 import tools.SimpleStringDTO;
 import tools.ToolArgument;
 import tools.ToolArgumentDTO;
+import tools.VerificationFailedException;
 
 class ChatCompletionClientImplTest {
 	
@@ -253,6 +254,25 @@ class EchoTool implements ITool<String> {
 		};
 	}
 
+
+	@Override
+	public Map<String, Object> getContextObject() {
+		return null;
+	}
+
+
+	@Override
+	public void setContextObject(Map<String, Object> context) {
+	}
+
+
+	@Override
+	public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context)
+			throws VerificationFailedException {
+		// TODO Auto-generated method stub
+		
+	}
+
 }
 
 
@@ -307,6 +327,24 @@ class ArithmeticTool implements ITool<Double> {
         if (obj instanceof String) return Double.parseDouble((String) obj);
         throw new IllegalArgumentException("Expected numeric input but got: " + obj);
     }
+
+	@Override
+	public Map<String, Object> getContextObject() {
+		
+		return null;
+	}
+
+	@Override
+	public void setContextObject(Map<String, Object> context) {
+		
+	}
+
+	@Override
+	public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context)
+			throws VerificationFailedException {
+		// TODO Auto-generated method stub
+		
+	}
 
 }
 

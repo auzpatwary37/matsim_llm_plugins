@@ -33,7 +33,7 @@ public class ToolArgument<B, T extends ToolArgumentDTO<B>> {
     public B fromJson(String json, Gson gson) {
         T dto = gson.fromJson(json, dtoClass);
         dto.isVerified();
-        return dto.toBaseClass();
+        return dto.toBaseClass(null);
     }
 
     public String getName() {

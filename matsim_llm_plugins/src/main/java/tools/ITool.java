@@ -93,7 +93,7 @@ public interface ITool<T>{
                 }
             }
             
-
+            this.verifyArguments(baseObjects, this.getContextObject());
             return callTool(toolCallId, baseObjects, vectorDB);
         } catch (Exception ex) {
             return handleErrorMessage(toolCallId, ex);
@@ -141,9 +141,16 @@ public interface ITool<T>{
             true // always sent to LLM
         );
     }
+    
+    
+    public void verifyArguments(Map<String,Object> arguments, Map<String,Object> context) throws VerificationFailedException;
 
 
+    Map<String, Object> getContextObject();
+    
+    
 
+    void setContextObject(Map<String, Object> context);
     
     
 }
