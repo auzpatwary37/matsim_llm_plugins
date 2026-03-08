@@ -2,6 +2,8 @@ package tools;
 
 import java.util.Map;
 
+import com.google.gson.JsonObject;
+
 public abstract class ToolArgumentDTO <T>{
 	
 	/**
@@ -17,4 +19,5 @@ public abstract class ToolArgumentDTO <T>{
 	 * @return
 	 */
 	public abstract boolean isVerified();
+	
 }
