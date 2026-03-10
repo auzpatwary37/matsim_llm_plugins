@@ -1,21 +1,18 @@
 package chatcommons;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.inject.Inject;
 
-import apikeys.APIKeys;
 import chatrequest.IChatCompletionRequest;
 import chatrequest.IRequestMessage;
 import chatrequest.LmStudioChatRequest;
 import chatrequest.OpenAiChatRequest;
-import chatrequest.SimpleRequestMessage;
 import chatresponse.IChatCompletionResponse;
 import chatresponse.LmStudioChatResponse;
 import chatresponse.OpenAiChatResponse;
@@ -29,64 +26,77 @@ import okhttp3.Response;
 
 public class ChatCompletionClientImpl implements IChatCompletionClient {
 
-    private final LLMConfigGroup config;
-    private final OkHttpClient httpClient = new OkHttpClient();
-    private final Gson gson = new Gson();
+	private final LLMConfigGroup config;
 
-    @Inject
-    public ChatCompletionClientImpl(LLMConfigGroup configGroup) {
-        this.config = configGroup;
-    }
+	private final OkHttpClient httpClient = new OkHttpClient.Builder()
+			.connectTimeout(30, TimeUnit.SECONDS)
+			.readTimeout(120, TimeUnit.SECONDS)
+			.writeTimeout(30, TimeUnit.SECONDS)
+			.callTimeout(0, TimeUnit.SECONDS) // or omit this line
+			.build();
+	private final Gson gson = new Gson();
 
-    @Override
-    public IChatCompletionResponse query(List<IChatMessage> history, IRequestMessage userMessage, List<JsonObject> tools, Map<String,Boolean> ifToolDummy) {
-        String endpoint = config.getFullLlmUrl();
-        BackendType backend = config.getBackendEnum();
-        history.add(userMessage);
+	@Inject
+	public ChatCompletionClientImpl(LLMConfigGroup configGroup) {
+		this.config = configGroup;
+	}
 
-        // Pick the correct payload builder based on backend
-        IChatCompletionRequest builder = switch (backend) {
-            case OPENAI -> new OpenAiChatRequest();
-            case LM_STUDIO -> new LmStudioChatRequest();
-            case OLLAMA -> throw new IllegalArgumentException("Ollama backend is not implemented yet!!! Use either openai or Lm");
-        };
+	@Override
+	public IChatCompletionResponse query(List<IChatMessage> history, IRequestMessage userMessage, List<JsonObject> tools, Map<String,Boolean> ifToolDummy) {
+		String endpoint = config.getFullLlmUrl();
+		BackendType backend = config.getBackendEnum();
+		history.add(userMessage);
 
-        String body = builder.serializeToHttpBody(
-            history, tools,ifToolDummy, "auto", config.getTemperature(), config.getMaxTokens(), config.getModelName(), false
-        );
+		// Pick the correct payload builder based on backend
+		IChatCompletionRequest builder = switch (backend) {
+		case OPENAI -> new OpenAiChatRequest();
+		case LM_STUDIO -> new LmStudioChatRequest();
+		case OLLAMA -> throw new IllegalArgumentException("Ollama backend is not implemented yet!!! Use either openai or Lm");
+		};
 
-        Request request = new Request.Builder()
-                .url(endpoint)
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Authorization", "Bearer " + config.getAuthorization())
-                .post(RequestBody.create(body, MediaType.parse("application/json")))
-                .build();
-        
-        System.out.println(body);
-        System.out.println(request.toString());
+		String body = builder.serializeToHttpBody(
+				history, tools,ifToolDummy, "auto", config.getTemperature(), config.getMaxTokens(), config.getModelName(), false, userMessage.ifEnableThinking()
+				);
 
-        try (Response response = httpClient.newCall(request).execute()) {
-            String responseBody = response.body() != null ? response.body().string() : "(no body)";
+		Request request = new Request.Builder()
+				.url(endpoint)
+				.addHeader("Content-Type", "application/json")
+				.addHeader("Authorization", "Bearer " + config.getAuthorization())
+				.post(RequestBody.create(body, MediaType.parse("application/json")))
+				.build();
 
-            if (!response.isSuccessful()) {
-                throw new IOException("HTTP " + response.code() + " error from OpenAI: " + responseBody);
-            }
+		System.out.println(body);
+		System.out.println(request.toString());
 
-            return switch (backend) {
-                case OPENAI -> gson.fromJson(responseBody, OpenAiChatResponse.class);
-                case LM_STUDIO -> gson.fromJson(responseBody, LmStudioChatResponse.class);
-                case OLLAMA -> throw new IllegalArgumentException("Ollama backend is not implemented yet!!! Use either openai or Lm");
-            };
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to call LLM endpoint: " + e.getMessage(), e);
-        }
+		try (Response response = httpClient.newCall(request).execute()) {
+			String responseBody = response.body() != null ? response.body().string() : "(no body)";
 
-    }
+			if (!response.isSuccessful()) {
+				throw new IOException("HTTP " + response.code() + " error from OpenAI: " + responseBody);
+			}
 
-    @Override
-    public LLMConfigGroup getLLMConfig() {
-        return config;
-    }
-    
+			IChatCompletionResponse parsed = switch (backend) {
+			case OPENAI -> gson.fromJson(responseBody, OpenAiChatResponse.class);
+			case LM_STUDIO -> gson.fromJson(responseBody, LmStudioChatResponse.class);
+			case OLLAMA -> throw new IllegalArgumentException("Ollama backend is not implemented yet!!! Use either openai or Lm");
+			};
+
+			if (parsed != null) {
+				parsed.postBuildCleanup();
+			}
+
+			return parsed;
+
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to call LLM endpoint: " + e.getMessage(), e);
+		}
+
+	}
+
+	@Override
+	public LLMConfigGroup getLLMConfig() {
+		return config;
+	}
+
 }
 

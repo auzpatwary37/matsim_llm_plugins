@@ -28,13 +28,15 @@ public class LmStudioChatRequest implements IChatCompletionRequest {
                                       double temperature,
                                       int maxTokens,
                                       String modelName,
-                                      boolean stream) {
+                                      boolean stream,
+                                      boolean enableThinking) {
 
         JsonObject payload = new JsonObject();
         payload.addProperty("model", modelName);
         payload.addProperty("temperature", temperature);
         payload.addProperty("max_tokens", maxTokens);
         payload.addProperty("stream", false); // LM Studio doesn't support streaming
+        payload.addProperty("enable_thinking", enableThinking);
 
         JsonArray messageArray = new JsonArray();
 

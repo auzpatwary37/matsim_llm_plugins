@@ -67,7 +67,7 @@ public class DefaultChatManager implements IChatManager {
                 }
             }
 
-            IRequestMessage toolMessage = new SimpleRequestMessage(Role.TOOL,"",newResponses);
+            IRequestMessage toolMessage = new SimpleRequestMessage(Role.TOOL,"",newResponses,false);
 //            history.add(toolMessage);
             message = toolMessage;
             if(!ifNonDummy) {

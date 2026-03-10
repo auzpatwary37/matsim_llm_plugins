@@ -63,4 +63,5 @@ public interface IChatManager {
      * Clears both the history and the system message.
      */
     void clear();
+
 }

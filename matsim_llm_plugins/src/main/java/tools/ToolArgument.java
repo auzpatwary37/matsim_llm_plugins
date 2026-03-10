@@ -1,5 +1,6 @@
 package tools;
 
+import java.lang.reflect.Method;
 import java.util.function.Function;
 
 import com.google.gson.Gson;
@@ -31,9 +32,44 @@ public class ToolArgument<B, T extends ToolArgumentDTO<B>> {
     }
 
     public B fromJson(String json, Gson gson) {
-        T dto = gson.fromJson(json, dtoClass);
-        dto.isVerified();
-        return dto.toBaseClass(null);
+        try {
+            // First parse into JsonObject once
+            JsonObject obj = gson.fromJson(json, JsonObject.class);
+
+            T dto;
+
+            try {
+                // Look for optional static parser
+                Method parser = dtoClass.getMethod("fromJsonObject", JsonObject.class, Gson.class);
+
+                @SuppressWarnings("unchecked")
+                T parsed = (T) parser.invoke(null, obj, gson);
+                dto = parsed;
+
+            } catch (NoSuchMethodException e) {
+                // No custom parser → use default Gson
+                dto = gson.fromJson(obj, dtoClass);
+            }
+
+            if (dto == null) {
+                throw new RuntimeException("Failed to parse DTO: " + dtoClass.getName());
+            }
+
+            if (!dto.isVerified()) {
+                throw new RuntimeException("DTO verification failed: " + dtoClass.getName());
+            }
+
+            B base = dto.toBaseClass(null);
+
+            if (base == null) {
+                throw new RuntimeException("DTO toBaseClass returned null: " + dtoClass.getName());
+            }
+
+            return base;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse tool argument for DTO " + dtoClass.getName(), e);
+        }
     }
 
     public String getName() {

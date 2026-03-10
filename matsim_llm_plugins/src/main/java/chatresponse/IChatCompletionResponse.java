@@ -32,6 +32,16 @@ public interface IChatCompletionResponse {
      * Additional metadata (e.g., ID, timestamp).
      */
     Map<String, Object> getMetadata();
+    
+    /**
+     * a hook to allow post build cleanup
+     */
+    void postBuildCleanup();
+    /**
+     * get any reasoning done by the model.
+     * @return
+     */
+    String getReasoning();
 }
 
 

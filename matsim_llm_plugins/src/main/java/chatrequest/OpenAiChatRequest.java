@@ -28,13 +28,15 @@ public class OpenAiChatRequest implements IChatCompletionRequest {
                                       double temperature,
                                       int maxTokens,
                                       String modelName,
-                                      boolean stream) {
+                                      boolean stream,
+                                      boolean enableThinking) {
 
         JsonObject payload = new JsonObject();
         payload.addProperty("model", modelName);
         payload.addProperty("temperature", temperature);
         payload.addProperty("max_tokens", maxTokens);
         payload.addProperty("stream", stream);
+        payload.addProperty("enable_thinking", enableThinking);
 
         // === Serialize messages with tool calls and responses ===
         JsonArray messageArray = new JsonArray();

@@ -72,7 +72,7 @@ public class DefaultToolManager implements IToolManager {
             return null;
         }
 
-        return new SimpleRequestMessage(Role.TOOL, null, forLLM);
+        return new SimpleRequestMessage(Role.TOOL, null, forLLM, false);
     }
 
 	@Override

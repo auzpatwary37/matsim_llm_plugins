@@ -9,6 +9,7 @@ import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.pt.routes.TransitPassengerRoute;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -170,6 +171,32 @@ public class LegDTO extends PlanElementDTO<Leg> {
 
         return schema;
     }
+    
+    @Override
+    public void afterJsonLoad(String json, Gson gson) {
+        JsonObject obj = gson.fromJson(json, JsonObject.class);
+
+        if (obj.has("route") && obj.get("route").isJsonObject()) {
+            JsonObject routeObj = obj.getAsJsonObject("route");
+
+            if (!routeObj.has("routeType")) {
+                throw new RuntimeException("Missing routeType in leg route");
+            }
+
+            String routeType = routeObj.get("routeType").getAsString();
+
+            switch (routeType) {
+                case "network":
+                    this.route = gson.fromJson(routeObj, NetworkRouteDTO.class);
+                    break;
+                case "transit_passenger":
+                    this.route = gson.fromJson(routeObj, TransitPassengerRouteDTO.class);
+                    break;
+                default:
+                    throw new RuntimeException("Unknown routeType: " + routeType);
+            }
+        }
+    }
 
     private static boolean isNonBlank(String s) {
         return s != null && !s.trim().isEmpty();
@@ -261,5 +288,33 @@ public class LegDTO extends PlanElementDTO<Leg> {
     @Override
     public String getElementType() {
         return elementType;
+    }
+    
+    @Override
+    public JsonObject toJsonObject(Gson gson) {
+        JsonObject obj = new JsonObject();
+
+        obj.addProperty("elementType", elementType);
+        obj.addProperty("mode", mode);
+
+        if (departureTimeSeconds != null) {
+            obj.addProperty("departureTimeSeconds", departureTimeSeconds);
+        }
+
+        if (travelTimeSeconds != null) {
+            obj.addProperty("travelTimeSeconds", travelTimeSeconds);
+        }
+
+        if (route != null) {
+            if (route instanceof NetworkRouteDTO) {
+                obj.add("route", ((NetworkRouteDTO) route).toJsonObject(gson));
+            } else if (route instanceof TransitPassengerRouteDTO) {
+                obj.add("route", ((TransitPassengerRouteDTO) route).toJsonObject(gson));
+            } else {
+                throw new RuntimeException("Unsupported route DTO subtype: " + route.getClass().getName());
+            }
+        }
+
+        return obj;
     }
 }

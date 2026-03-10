@@ -42,7 +42,7 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
             this.facilityId = activity.getFacilityId().toString();
         }
 
-        this.endTime = safeGetTimeSeconds(activity, "getEndTime");
+        if(activity.getEndTime().isDefined())this.endTime = activity.getEndTime().seconds();
 
         if (this.type != null) {
             this.ifInteractionActivity =
@@ -60,7 +60,7 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
         Activity act = PopulationUtils.createActivityFromFacilityId(type.trim(), fid);
 
         if (endTime != null) {
-            safeSetTimeSeconds(act, "setEndTime", endTime);
+            act.setEndTime(endTime);
         }
 
         return act;

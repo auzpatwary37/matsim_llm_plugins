@@ -16,6 +16,8 @@ public class LmStudioChatResponse implements IChatCompletionResponse {
     private String model;
     private List<Choice> choices;
     private Usage usage;
+    private String reasoning = null;
+
 
     @SerializedName("system_fingerprint")
     private String systemFingerprint;
@@ -54,6 +56,11 @@ public class LmStudioChatResponse implements IChatCompletionResponse {
         public List<IToolCall> getToolCalls() {
             return (List<IToolCall>)(List<?>) toolCalls;
         }
+
+		@Override
+		public boolean ifEnableThinking() {
+			return false;
+		}
     }
 
     public static class ToolCall implements IToolCall {
@@ -155,4 +162,45 @@ public class LmStudioChatResponse implements IChatCompletionResponse {
         meta.put("system_fingerprint", systemFingerprint);
         return meta;
     }
+
+	
+	@Override
+	public void postBuildCleanup() {
+
+	    if (choices == null || choices.isEmpty()) {
+	        return;
+	    }
+
+	    Choice firstChoice = choices.get(0);
+	    if (firstChoice == null || firstChoice.message == null) {
+	        return;
+	    }
+
+	    String rawContent = firstChoice.message.content;
+	    if (rawContent == null || rawContent.isBlank()) {
+	        return;
+	    }
+
+	    // If reasoning already provided separately by server, leave it alone
+	    if (this.reasoning != null) {
+	        firstChoice.message.content = rawContent.trim();
+	        return;
+	    }
+
+	    java.util.regex.Matcher matcher = java.util.regex.Pattern
+	            .compile("(?s)^\\s*<think>(.*?)</think>\\s*(.*)$")
+	            .matcher(rawContent);
+
+	    if (matcher.matches()) {
+	        this.reasoning = matcher.group(1).trim();
+	        firstChoice.message.content = matcher.group(2).trim();
+	    } else {
+	        firstChoice.message.content = rawContent.trim();
+	    }
+	}
+
+	@Override
+	public String getReasoning() {
+		return this.reasoning;
+	}
 }

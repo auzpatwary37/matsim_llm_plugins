@@ -8,5 +8,10 @@ package chatcommons;
 public interface IChatMessage {
     Role getRole();       // "user", "assistant", "tool", or "system"
     String getContent();    // Main message content or tool result
+    /**
+     * 
+     * @return if thinking is enabled in the request message. 
+     */
+    boolean ifEnableThinking();
 }
 

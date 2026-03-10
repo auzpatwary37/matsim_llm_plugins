@@ -10,15 +10,21 @@ public class SimpleRequestMessage implements IRequestMessage {
     private final Role role;
     private final String content;
     private final List<IToolResponse<?>> toolResponses;
+    private final boolean enableThinking;
 
     public SimpleRequestMessage(Role role, String content) {
-        this(role, content, null);
+        this(role, content, null,false);
+    }
+    
+    public SimpleRequestMessage(Role role, String content, boolean enableThinking) {
+        this(role, content, null, enableThinking);
     }
 
-    public SimpleRequestMessage(Role role, String content, List<IToolResponse<?>> toolResponses) {
+    public SimpleRequestMessage(Role role, String content, List<IToolResponse<?>> toolResponses, boolean enableThinking) {
         this.role = role;
         this.content = content;
         this.toolResponses = toolResponses;
+        this.enableThinking = enableThinking;
     }
 
     @Override
@@ -38,6 +44,12 @@ public class SimpleRequestMessage implements IRequestMessage {
 
     @Override
     public String toString() {
-        return "{" + role + ": " + content + "}";
+        return "{" + role + ": " + content + "}" + (enableThinking?"no_think":"");
     }
+
+	@Override
+	public boolean ifEnableThinking() {
+		// TODO Auto-generated method stub
+		return this.enableThinking;
+	}
 }

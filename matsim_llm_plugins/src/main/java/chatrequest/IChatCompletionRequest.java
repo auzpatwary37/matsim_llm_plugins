@@ -18,6 +18,7 @@ public interface IChatCompletionRequest {
                                double temperature,
                                int maxTokens,
                                String modelName,
-                               boolean stream);
+                               boolean stream,
+                               boolean enableThinking);
 }
 

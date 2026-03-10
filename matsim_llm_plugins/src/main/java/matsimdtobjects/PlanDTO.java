@@ -10,7 +10,9 @@ import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.core.population.PopulationUtils;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import tools.ToolArgumentDTO;
@@ -32,6 +34,55 @@ public class PlanDTO extends ToolArgumentDTO<Plan> {
                 elements.add(new LegDTO(leg));
             }
         });
+    }
+    
+    @Override
+    public void afterJsonLoad(String json, Gson gson) {
+        JsonObject obj = gson.fromJson(json, JsonObject.class);
+
+        this.elements = new ArrayList<>();
+
+        JsonArray arr = obj.getAsJsonArray("elements");
+        for (JsonElement el : arr) {
+            JsonObject elemObj = el.getAsJsonObject();
+
+            if (!elemObj.has("elementType")) {
+                throw new RuntimeException("Missing elementType in plan element");
+            }
+
+            String elementType = elemObj.get("elementType").getAsString();
+
+            switch (elementType) {
+                case "activity":
+                    this.elements.add(gson.fromJson(elemObj, ActivityDTO.class));
+                    break;
+                case "leg":
+                    LegDTO leg = gson.fromJson(elemObj, LegDTO.class);
+                    leg.afterJsonLoad(elemObj.toString(), gson);
+                    this.elements.add(leg);
+                    break;
+                default:
+                    throw new RuntimeException("Unknown elementType: " + elementType);
+            }
+        }
+    }
+    
+    @Override
+    public JsonObject toJsonObject(Gson gson) {
+        JsonObject obj = new JsonObject();
+        JsonArray arr = new JsonArray();
+
+        if (elements != null) {
+            for (PlanElementDTO<?> element : elements) {
+                if (element == null) {
+                    continue;
+                }
+                arr.add(element.toJsonObject(gson));
+            }
+        }
+
+        obj.add("elements", arr);
+        return obj;
     }
 
     @Override
