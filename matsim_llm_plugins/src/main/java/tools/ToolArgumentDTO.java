@@ -41,7 +41,7 @@ public abstract class ToolArgumentDTO <T>{
 	 * @param json the original JSON string used to populate this DTO
 	 * @param gson the Gson instance used for parsing
 	 */
-	
+	@Deprecated
 	public void afterJsonLoad(String json, Gson gson) {
 	        // default: do nothing
 	}

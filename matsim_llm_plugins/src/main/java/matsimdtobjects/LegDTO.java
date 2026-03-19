@@ -186,14 +186,61 @@ public class LegDTO extends PlanElementDTO<Leg> {
         return schema;
     }
     
-    @Override
-    public void afterJsonLoad(String json, Gson gson) {
-        JsonObject obj = gson.fromJson(json, JsonObject.class);
+//    @Override
+//    public void afterJsonLoad(String json, Gson gson) {
+//        JsonObject obj = gson.fromJson(json, JsonObject.class);
+//
+//        if (obj.has("route") && obj.get("route").isJsonObject()) {
+//            JsonObject routeObj = obj.getAsJsonObject("route");
+//
+//            if (!routeObj.has("routeType")) {
+//                throw new RuntimeException("Missing routeType in leg route");
+//            }
+//
+//            String routeType = routeObj.get("routeType").getAsString();
+//
+//            switch (routeType) {
+//                case "network":
+//                    this.route = gson.fromJson(routeObj, NetworkRouteDTO.class);
+//                    break;
+//                case "transit_passenger":
+//                    this.route = gson.fromJson(routeObj, TransitPassengerRouteDTO.class);
+//                    break;
+//                default:
+//                    throw new RuntimeException("Unknown routeType: " + routeType);
+//            }
+//        }
+//    }
+    
+    public static LegDTO fromJsonObject(JsonObject obj, Gson gson) {
+        LegDTO dto = new LegDTO();
+
+        if (obj == null) {
+            throw new RuntimeException("LegDTO JSON object is null");
+        }
+
+        if (obj.has("elementType") && !obj.get("elementType").isJsonNull()) {
+            dto.elementType = obj.get("elementType").getAsString();
+        } else {
+            dto.elementType = "leg";
+        }
+
+        if (obj.has("mode") && !obj.get("mode").isJsonNull()) {
+            dto.mode = obj.get("mode").getAsString();
+        }
+
+        if (obj.has("departureTimeSeconds") && !obj.get("departureTimeSeconds").isJsonNull()) {
+            dto.departureTimeSeconds = obj.get("departureTimeSeconds").getAsDouble();
+        }
+
+        if (obj.has("travelTimeSeconds") && !obj.get("travelTimeSeconds").isJsonNull()) {
+            dto.travelTimeSeconds = obj.get("travelTimeSeconds").getAsDouble();
+        }
 
         if (obj.has("route") && obj.get("route").isJsonObject()) {
             JsonObject routeObj = obj.getAsJsonObject("route");
 
-            if (!routeObj.has("routeType")) {
+            if (!routeObj.has("routeType") || routeObj.get("routeType").isJsonNull()) {
                 throw new RuntimeException("Missing routeType in leg route");
             }
 
@@ -201,15 +248,19 @@ public class LegDTO extends PlanElementDTO<Leg> {
 
             switch (routeType) {
                 case "network":
-                    this.route = gson.fromJson(routeObj, NetworkRouteDTO.class);
+                    dto.route = NetworkRouteDTO.fromJsonObject(routeObj, gson);
                     break;
+
                 case "transit_passenger":
-                    this.route = gson.fromJson(routeObj, TransitPassengerRouteDTO.class);
+                    dto.route = TransitPassengerRouteDTO.fromJsonObject(routeObj, gson);
                     break;
+
                 default:
                     throw new RuntimeException("Unknown routeType: " + routeType);
             }
         }
+
+        return dto;
     }
 
     private static boolean isNonBlank(String s) {

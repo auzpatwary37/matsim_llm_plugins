@@ -47,7 +47,7 @@ public class ToolArgument<B, T extends ToolArgumentDTO<B>> {
                 dto = parsed;
 
             } catch (NoSuchMethodException e) {
-                // No custom parser → use default Gson
+                // No custom parser -> use default Gson
                 dto = gson.fromJson(obj, dtoClass);
             }
 
@@ -55,11 +55,13 @@ public class ToolArgument<B, T extends ToolArgumentDTO<B>> {
                 throw new RuntimeException("Failed to parse DTO: " + dtoClass.getName());
             }
 
+            dto.afterJsonLoad(json, gson);
+
             if (!dto.isVerified(em)) {
                 throw new RuntimeException("DTO verification failed: " + dtoClass.getName());
             }
 
-            B base = dto.toBaseClass(null,em);
+            B base = dto.toBaseClass(null, em);
 
             if (base == null) {
                 throw new RuntimeException("DTO toBaseClass returned null: " + dtoClass.getName());

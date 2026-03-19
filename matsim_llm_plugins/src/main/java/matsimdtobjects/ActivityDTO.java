@@ -1,6 +1,5 @@
 package matsimdtobjects;
 
-import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -9,6 +8,7 @@ import org.matsim.api.core.v01.population.Activity;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.facilities.ActivityFacility;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -176,6 +176,10 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
         schema.add("required", required);
 
         return schema;
+    }
+    
+    public static ActivityDTO fromJsonObject(JsonObject obj, Gson gson) {
+        return gson.fromJson(obj, ActivityDTO.class);
     }
 
     private static boolean isAllowedType(String t) {

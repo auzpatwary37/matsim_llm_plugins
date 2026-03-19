@@ -10,6 +10,7 @@ import org.matsim.api.core.v01.network.Link;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.population.routes.RouteUtils;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -38,6 +39,10 @@ public class NetworkRouteDTO extends RouteDTO<NetworkRoute> {
         if (route.getLinkIds() != null) {
             route.getLinkIds().forEach(id -> this.linkIds.add(id.toString()));
         }
+    }
+    
+    public static NetworkRouteDTO fromJsonObject(JsonObject obj, Gson gson) {
+        return gson.fromJson(obj, NetworkRouteDTO.class);
     }
 
     @Override

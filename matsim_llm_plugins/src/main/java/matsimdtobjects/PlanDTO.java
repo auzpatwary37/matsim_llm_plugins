@@ -37,35 +37,79 @@ public class PlanDTO extends ToolArgumentDTO<Plan> {
         });
     }
     
-    @Override
-    public void afterJsonLoad(String json, Gson gson) {
-        JsonObject obj = gson.fromJson(json, JsonObject.class);
+//    @Override
+//    public void afterJsonLoad(String json, Gson gson) {
+//        JsonObject obj = gson.fromJson(json, JsonObject.class);
+//
+//        this.elements = new ArrayList<>();
+//
+//        JsonArray arr = obj.getAsJsonArray("elements");
+//        for (JsonElement el : arr) {
+//            JsonObject elemObj = el.getAsJsonObject();
+//
+//            if (!elemObj.has("elementType")) {
+//                throw new RuntimeException("Missing elementType in plan element");
+//            }
+//
+//            String elementType = elemObj.get("elementType").getAsString();
+//
+//            switch (elementType) {
+//                case "activity":
+//                    this.elements.add(gson.fromJson(elemObj, ActivityDTO.class));
+//                    break;
+//                case "leg":
+//                    LegDTO leg = gson.fromJson(elemObj, LegDTO.class);
+//                    leg.afterJsonLoad(elemObj.toString(), gson);
+//                    this.elements.add(leg);
+//                    break;
+//                default:
+//                    throw new RuntimeException("Unknown elementType: " + elementType);
+//            }
+//        }
+//    }
+    
+    public static PlanDTO fromJsonObject(JsonObject obj, Gson gson) {
+        PlanDTO dto = new PlanDTO();
 
-        this.elements = new ArrayList<>();
+        // Initialize list
+        dto.elements = new ArrayList<>();
+
+        // Validate elements
+        if (!obj.has("elements") || !obj.get("elements").isJsonArray()) {
+            throw new RuntimeException("PlanDTO: missing or invalid 'elements' array");
+        }
 
         JsonArray arr = obj.getAsJsonArray("elements");
+
         for (JsonElement el : arr) {
+            if (!el.isJsonObject()) {
+                throw new RuntimeException("PlanDTO: element is not a JSON object");
+            }
+
             JsonObject elemObj = el.getAsJsonObject();
 
             if (!elemObj.has("elementType")) {
-                throw new RuntimeException("Missing elementType in plan element");
+                throw new RuntimeException("PlanDTO: missing elementType in plan element");
             }
 
             String elementType = elemObj.get("elementType").getAsString();
 
             switch (elementType) {
+
                 case "activity":
-                    this.elements.add(gson.fromJson(elemObj, ActivityDTO.class));
+                    dto.elements.add(ActivityDTO.fromJsonObject(elemObj, gson));
                     break;
+
                 case "leg":
-                    LegDTO leg = gson.fromJson(elemObj, LegDTO.class);
-                    leg.afterJsonLoad(elemObj.toString(), gson);
-                    this.elements.add(leg);
+                    dto.elements.add(LegDTO.fromJsonObject(elemObj, gson));
                     break;
+
                 default:
-                    throw new RuntimeException("Unknown elementType: " + elementType);
+                    throw new RuntimeException("PlanDTO: unknown elementType: " + elementType);
             }
         }
+
+        return dto;
     }
     
     @Override

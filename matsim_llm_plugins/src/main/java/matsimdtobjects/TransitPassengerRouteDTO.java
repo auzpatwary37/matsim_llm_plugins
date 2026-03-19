@@ -12,6 +12,7 @@ import org.matsim.pt.transitSchedule.api.TransitLine;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -35,6 +36,10 @@ public class TransitPassengerRouteDTO extends RouteDTO<TransitPassengerRoute> {
 
     public TransitPassengerRouteDTO() {
         this.routeType = "transit_passenger";
+    }
+    
+    public static TransitPassengerRouteDTO fromJsonObject(JsonObject obj, Gson gson) {
+        return gson.fromJson(obj, TransitPassengerRouteDTO.class);
     }
 
     public TransitPassengerRouteDTO(TransitPassengerRoute route) {
