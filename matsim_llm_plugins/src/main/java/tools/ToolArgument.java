@@ -31,7 +31,7 @@ public class ToolArgument<B, T extends ToolArgumentDTO<B>> {
         return toDTO.apply(baseObject);
     }
 
-    public B fromJson(String json, Gson gson) {
+    public B fromJson(String json, Gson gson, ErrorMessages em) {
         try {
             // First parse into JsonObject once
             JsonObject obj = gson.fromJson(json, JsonObject.class);
@@ -55,11 +55,11 @@ public class ToolArgument<B, T extends ToolArgumentDTO<B>> {
                 throw new RuntimeException("Failed to parse DTO: " + dtoClass.getName());
             }
 
-            if (!dto.isVerified()) {
+            if (!dto.isVerified(em)) {
                 throw new RuntimeException("DTO verification failed: " + dtoClass.getName());
             }
 
-            B base = dto.toBaseClass(null);
+            B base = dto.toBaseClass(null,em);
 
             if (base == null) {
                 throw new RuntimeException("DTO toBaseClass returned null: " + dtoClass.getName());

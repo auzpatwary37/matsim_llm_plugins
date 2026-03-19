@@ -15,6 +15,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import tools.ErrorMessages;
 import tools.ToolArgumentDTO;
 
 public class PlanDTO extends ToolArgumentDTO<Plan> {
@@ -86,17 +87,17 @@ public class PlanDTO extends ToolArgumentDTO<Plan> {
     }
 
     @Override
-    public Plan toBaseClass(Map<String, Object> context) {
-        if (!isVerified()) return null;
+    public Plan toBaseClass(Map<String, Object> context, ErrorMessages em) {
+        if (!isVerified(em)) return null;
 
         Plan plan = PopulationUtils.createPlan();
 
         for (PlanElementDTO<?> elementDTO : elements) {
-            if (elementDTO == null || !elementDTO.isVerified()) {
+            if (elementDTO == null || !elementDTO.isVerified(em)) {
                 return null;
             }
 
-            Object baseObj = elementDTO.toBaseClass(context);
+            Object baseObj = elementDTO.toBaseClass(context,em);
 
             if (baseObj instanceof Activity activity) {
                 plan.addActivity(activity);
@@ -111,31 +112,55 @@ public class PlanDTO extends ToolArgumentDTO<Plan> {
     }
 
     @Override
-    public boolean isVerified() {
-        if (elements == null || elements.isEmpty()) return false;
+    public boolean isVerified(ErrorMessages em) {
+        boolean outcome = true;
 
-        for (PlanElementDTO<?> element : elements) {
-            if (element == null || !element.isVerified()) {
-                return false;
+        if (elements == null || elements.isEmpty()) {
+            outcome = false;
+            em.addErrorMessages("Plan elements are null or empty.");
+            return outcome;
+        }
+
+        for (int i = 0; i < elements.size(); i++) {
+            PlanElementDTO<?> element = elements.get(i);
+
+            if (element == null) {
+                outcome = false;
+                em.addErrorMessages("Plan element at position " + i + " is null.");
+            } else if (!element.isVerified(em)) {
+                outcome = false;
             }
         }
 
         // MATSim plans should usually start and end with activities
-        if (!(elements.get(0) instanceof ActivityDTO)) return false;
-        if (!(elements.get(elements.size() - 1) instanceof ActivityDTO)) return false;
+        if (!(elements.get(0) instanceof ActivityDTO)) {
+            outcome = false;
+            em.addErrorMessages("Plan must start with an ActivityDTO.");
+        }
+
+        if (!(elements.get(elements.size() - 1) instanceof ActivityDTO)) {
+            outcome = false;
+            em.addErrorMessages("Plan must end with an ActivityDTO.");
+        }
 
         // Must alternate Activity-Leg-Activity-Leg...
         for (int i = 0; i < elements.size(); i++) {
             PlanElementDTO<?> el = elements.get(i);
 
             if (i % 2 == 0) {
-                if (!(el instanceof ActivityDTO)) return false;
+                if (!(el instanceof ActivityDTO)) {
+                    outcome = false;
+                    em.addErrorMessages("Plan element at position " + i + " must be an ActivityDTO.");
+                }
             } else {
-                if (!(el instanceof LegDTO)) return false;
+                if (!(el instanceof LegDTO)) {
+                    outcome = false;
+                    em.addErrorMessages("Plan element at position " + i + " must be a LegDTO.");
+                }
             }
         }
 
-        return true;
+        return outcome;
     }
 
     public static Function<Plan, PlanDTO> toDTOFromBaseObject() {

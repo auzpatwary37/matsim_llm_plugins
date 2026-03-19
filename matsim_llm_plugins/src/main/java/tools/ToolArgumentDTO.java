@@ -12,14 +12,14 @@ public abstract class ToolArgumentDTO <T>{
 	 * @param context objects required to create the base class. 
 	 * @return
 	 */
-	public abstract T toBaseClass(Map<String, Object> context);
+	public abstract T toBaseClass(Map<String, Object> context, ErrorMessages em);
 	
 	/**
 	 * Should throw VerificationFailedException with the list of error messages to be sent back to the LLM. 
 	 * Provides additional verification option after creation is complete. Internal consistency verification.
 	 * @return
 	 */
-	public abstract boolean isVerified();
+	public abstract boolean isVerified(ErrorMessages em);
 	
 	/**
 	 * Optional hook executed immediately after the DTO is populated from JSON using Gson.

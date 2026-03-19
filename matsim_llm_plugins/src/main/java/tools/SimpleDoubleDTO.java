@@ -21,12 +21,12 @@ public class SimpleDoubleDTO extends ToolArgumentDTO<Double> {
     }
 
     @Override
-    public Double toBaseClass(Map<String, Object> context) {
+    public Double toBaseClass(Map<String, Object> context, ErrorMessages em) {
         return value;
     }
 
     @Override
-    public boolean isVerified() {
+    public boolean isVerified(ErrorMessages em) {
         return true; // or apply bounds check if needed
     }
 

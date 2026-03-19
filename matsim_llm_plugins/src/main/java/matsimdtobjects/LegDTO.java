@@ -13,6 +13,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import tools.ErrorMessages;
+
 public class LegDTO extends PlanElementDTO<Leg> {
 
     // Discriminator for nested polymorphic DTO parsing
@@ -58,8 +60,8 @@ public class LegDTO extends PlanElementDTO<Leg> {
     }
 
     @Override
-    public Leg toBaseClass(Map<String, Object> context) {
-        if (!isVerified()) {
+    public Leg toBaseClass(Map<String, Object> context, ErrorMessages em) {
+        if (!isVerified(em)) {
             return null;
         }
 
@@ -73,7 +75,7 @@ public class LegDTO extends PlanElementDTO<Leg> {
             safeSetTravelTime(leg, travelTimeSeconds);
         }
 
-        Route matsimRoute = route.toBaseClass(context);
+        Route matsimRoute = route.toBaseClass(context,em);
         if (matsimRoute == null) {
             return null;
         }
@@ -83,32 +85,44 @@ public class LegDTO extends PlanElementDTO<Leg> {
     }
 
     @Override
-    public boolean isVerified() {
+    public boolean isVerified(ErrorMessages em) {
+        boolean outcome = true;
+
         if (!"leg".equals(elementType)) {
-            return false;
+            outcome = false;
+            em.addErrorMessages("elementType is not leg.");
         }
 
         if (!isNonBlank(mode)) {
-            return false;
+            outcome = false;
+            em.addErrorMessages("mode is not defined for leg.");
         }
 
-        if (!isAllowedMode(mode.trim())) {
-            return false;
+        if (mode != null && !isAllowedMode(mode.trim())) {
+            outcome = false;
+            em.addErrorMessages("mode is not an allowed leg mode: " + mode);
         }
 
         if (departureTimeSeconds != null && departureTimeSeconds < 0) {
-            return false;
+            outcome = false;
+            em.addErrorMessages("departureTimeSeconds is negative.");
         }
 
         if (travelTimeSeconds != null && travelTimeSeconds < 0) {
-            return false;
+            outcome = false;
+            em.addErrorMessages("travelTimeSeconds is negative.");
         }
 
-        if (route == null || !route.isVerified()) {
-            return false;
+        if (route == null) {
+            outcome = false;
+            em.addErrorMessages("route is not defined for leg.");
+        } else {
+            if (!route.isVerified(em)) {
+                outcome = false;
+            }
         }
 
-        return true;
+        return outcome;
     }
 
     public static Function<Leg, LegDTO> toDTOFromBaseObject() {

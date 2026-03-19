@@ -1,7 +1,6 @@
 package tools;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.google.gson.JsonObject;
@@ -81,7 +80,7 @@ public class ExampleTool implements ITool<ExampleTool.ExampleOutput> {
         public String id;
         public int count;
 
-        @Override public CustomInput toBaseClass(Map<String, Object> context) {
+        @Override public CustomInput toBaseClass(Map<String, Object> context, ErrorMessages em) {
             CustomInput c = new CustomInput();
             c.id = id;
             c.count = count;
@@ -108,7 +107,7 @@ public class ExampleTool implements ITool<ExampleTool.ExampleOutput> {
             STATIC_SCHEMA = schema;
         }
 		@Override
-		public boolean isVerified() {//no additional verification for this test case. 
+		public boolean isVerified(ErrorMessages em) {//no additional verification for this test case. 
 			return true;
 		}
     }
@@ -137,7 +136,7 @@ public class ExampleTool implements ITool<ExampleTool.ExampleOutput> {
 	}
 
 	@Override
-	public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context)
+	public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context, ErrorMessages em)
 			throws VerificationFailedException {
 
 	}

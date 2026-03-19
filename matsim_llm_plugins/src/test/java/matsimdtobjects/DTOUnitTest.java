@@ -27,7 +27,8 @@ import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
+
+import tools.ErrorMessages;
 
 public class DTOUnitTest {
 
@@ -46,6 +47,7 @@ public class DTOUnitTest {
         original.setEndTime(28800.0);
 
         ActivityDTO dto = ActivityDTO.toDTOFromBaseObject().apply(original);
+        ErrorMessages em = new ErrorMessages();
 
         assertNotNull(dto);
         assertEquals("activity", dto.getElementType());
@@ -53,9 +55,9 @@ public class DTOUnitTest {
         assertEquals("fac_home", dto.facilityId);
         assertNotNull(dto.endTime);
         assertEquals(28800.0, dto.endTime, 1e-6);
-        assertTrue(dto.isVerified());
+        assertTrue(dto.isVerified(em));
 
-        Activity rebuilt = dto.toBaseClass(emptyContext());
+        Activity rebuilt = dto.toBaseClass(emptyContext(),em);
 
         assertNotNull(rebuilt);
         assertEquals("home", rebuilt.getType());
@@ -72,8 +74,9 @@ public class DTOUnitTest {
         dto.type = "work";
         dto.facilityId = "fac_work";
         dto.endTime = 32400.0;
+        ErrorMessages em = new ErrorMessages();
 
-        assertTrue(dto.isVerified());
+        assertTrue(dto.isVerified(em));
 
         String json = gson.toJson(dto);
         ActivityDTO parsed = gson.fromJson(json, ActivityDTO.class);
@@ -83,7 +86,7 @@ public class DTOUnitTest {
         assertEquals("work", parsed.type);
         assertEquals("fac_work", parsed.facilityId);
         assertEquals(32400.0, parsed.endTime, 1e-6);
-        assertTrue(parsed.isVerified());
+        assertTrue(parsed.isVerified(em));
     }
 
     @Test
@@ -92,10 +95,10 @@ public class DTOUnitTest {
         dto.elementType = "activity";
         dto.type = "pt interaction";
         dto.facilityId = "fac_pt_interaction";
+        ErrorMessages em = new ErrorMessages();
+        assertTrue(dto.isVerified(em));
 
-        assertTrue(dto.isVerified());
-
-        Activity rebuilt = dto.toBaseClass(emptyContext());
+        Activity rebuilt = dto.toBaseClass(emptyContext(),em);
         assertNotNull(rebuilt);
         assertEquals("pt interaction", rebuilt.getType());
         assertEquals("fac_pt_interaction", rebuilt.getFacilityId().toString());
@@ -113,9 +116,10 @@ public class DTOUnitTest {
         assertEquals("l4", dto.endLinkId);
         assertNotNull(dto.linkIds);
         assertEquals(List.of("l2", "l3"), dto.linkIds);
-        assertTrue(dto.isVerified());
+        ErrorMessages em = new ErrorMessages();
+        assertTrue(dto.isVerified(em));
 
-        NetworkRoute rebuilt = dto.toBaseClass(emptyContext());
+        NetworkRoute rebuilt = dto.toBaseClass(emptyContext(),em);
 
         assertNotNull(rebuilt);
         assertEquals("l1", rebuilt.getStartLinkId().toString());
@@ -132,8 +136,8 @@ public class DTOUnitTest {
         dto.startLinkId = "a";
         dto.endLinkId = "d";
         dto.linkIds = Arrays.asList("b", "c");
-
-        assertTrue(dto.isVerified());
+        ErrorMessages em = new ErrorMessages();
+        assertTrue(dto.isVerified(em));
 
         String json = gson.toJson(dto);
         NetworkRouteDTO parsed = gson.fromJson(json, NetworkRouteDTO.class);
@@ -143,7 +147,7 @@ public class DTOUnitTest {
         assertEquals("a", parsed.startLinkId);
         assertEquals("d", parsed.endLinkId);
         assertEquals(List.of("b", "c"), parsed.linkIds);
-        assertTrue(parsed.isVerified());
+        assertTrue(parsed.isVerified(em));
     }
 
     @Test
@@ -167,9 +171,10 @@ public class DTOUnitTest {
         assertEquals("stop_b", dto.egressStopId);
         assertEquals("line_1", dto.lineId);
         assertEquals("route_1", dto.routeId);
-        assertTrue(dto.isVerified());
+        ErrorMessages em = new ErrorMessages();
+        assertTrue(dto.isVerified(em));
 
-        TransitPassengerRoute rebuilt = dto.toBaseClass(emptyContext());
+        TransitPassengerRoute rebuilt = dto.toBaseClass(emptyContext(),em);
 
         assertNotNull(rebuilt);
         assertEquals("start_link", rebuilt.getStartLinkId().toString());
@@ -191,8 +196,8 @@ public class DTOUnitTest {
         dto.lineId = "lineX";
         dto.routeId = "routeY";
         dto.departureId = "dep1";
-
-        assertTrue(dto.isVerified());
+        ErrorMessages em = new ErrorMessages();
+        assertTrue(dto.isVerified(em));
 
         String json = gson.toJson(dto);
         TransitPassengerRouteDTO parsed = gson.fromJson(json, TransitPassengerRouteDTO.class);
@@ -206,7 +211,7 @@ public class DTOUnitTest {
         assertEquals("lineX", parsed.lineId);
         assertEquals("routeY", parsed.routeId);
         assertEquals("dep1", parsed.departureId);
-        assertTrue(parsed.isVerified());
+        assertTrue(parsed.isVerified(em));
     }
 
     @Test
@@ -221,9 +226,10 @@ public class DTOUnitTest {
         assertEquals("car", dto.mode);
         assertNotNull(dto.route);
         assertTrue(dto.route instanceof NetworkRouteDTO);
-        assertTrue(dto.isVerified());
+        ErrorMessages em = new ErrorMessages();
+        assertTrue(dto.isVerified(em));
 
-        Leg rebuilt = dto.toBaseClass(emptyContext());
+        Leg rebuilt = dto.toBaseClass(emptyContext(),em);
 
         assertNotNull(rebuilt);
         assertEquals("car", rebuilt.getMode());
@@ -258,9 +264,10 @@ public class DTOUnitTest {
         assertEquals("pt", dto.mode);
         assertNotNull(dto.route);
         assertTrue(dto.route instanceof TransitPassengerRouteDTO);
-        assertTrue(dto.isVerified());
+        ErrorMessages em = new ErrorMessages();
+        assertTrue(dto.isVerified(em));
 
-        Leg rebuilt = dto.toBaseClass(emptyContext());
+        Leg rebuilt = dto.toBaseClass(emptyContext(),em);
 
         assertNotNull(rebuilt);
         assertEquals("pt", rebuilt.getMode());
@@ -292,15 +299,16 @@ public class DTOUnitTest {
 
         dto.route = routeDto;
         
-        
+        ErrorMessages em = new ErrorMessages();
 
-        assertTrue(dto.isVerified());
+        assertTrue(dto.isVerified(em));
 
         String json = dto.toJsonObject(gson).toString();
 
         assertNotNull(json);
         assertTrue(json.contains("\"elementType\":\"leg\""));
         assertTrue(json.contains("\"routeType\":\"network\""));
+        
     }
 
     @Test
@@ -316,9 +324,9 @@ public class DTOUnitTest {
         routeDto.linkIds = List.of();
 
         dto.route = routeDto;
-
-        assertFalse(dto.isVerified());
-        assertNull(dto.toBaseClass(emptyContext()));
+        ErrorMessages em = new ErrorMessages();
+        assertFalse(dto.isVerified(em));
+        assertNull(dto.toBaseClass(emptyContext(),em));
     }
 
     @Test
@@ -326,9 +334,9 @@ public class DTOUnitTest {
         LegDTO dto = new LegDTO();
         dto.elementType = "leg";
         dto.mode = "walk";
-
-        assertFalse(dto.isVerified());
-        assertNull(dto.toBaseClass(emptyContext()));
+        ErrorMessages em = new ErrorMessages();
+        assertFalse(dto.isVerified(em));
+        assertNull(dto.toBaseClass(emptyContext(),em));
     }
 
     @Test

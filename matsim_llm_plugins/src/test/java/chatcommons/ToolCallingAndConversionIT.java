@@ -3,7 +3,6 @@ package chatcommons;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -26,6 +25,7 @@ import chatresponse.IResponseMessage;
 import rag.IVectorDB;
 import tools.DefaultToolManager;
 import tools.DefaultToolResponse;
+import tools.ErrorMessages;
 import tools.ITool;
 import tools.IToolCall;
 import tools.IToolResponse;
@@ -42,39 +42,39 @@ class ToolCallingAndConversionIT {
     void extractPlanTool_parsesJson_andBuildsRealMatSimPlan() {
         DefaultToolManager manager = new DefaultToolManager();
         manager.registerTool(new ExtractPlanTool());
+        
+        String schema = manager.getAllToolSchemas().toString();
 
         String argumentsJson = """
-                {
-                  "plan": {
-                    "elements": [
-                      {
-                        "elementType": "activity",
-                        "type": "home",
-                        "linkId": "1"
-                      },
-                      {
-                        "elementType": "leg",
-                        "mode": "car",
-                        "departureTimeSeconds": 28800,
-                        "travelTimeSeconds": 900,
-                        "route": {
-                          "routeType": "network",
-                          "startLinkId": "1",
-                          "endLinkId": "3",
-                          "linkIds": ["2"],
-                          "distance": 1500,
-                          "travelTimeSeconds": 900
-                        }
-                      },
-                      {
-                        "elementType": "activity",
-                        "type": "work",
-                        "linkId": "3"
-                      }
-                    ]
-                  }
-                }
-                """;
+        		{
+        		  "plan": {
+        		    "elements": [
+        		      {
+        		        "elementType": "activity",
+        		        "type": "home",
+        		        "facilityId": "1"
+        		      },
+        		      {
+        		        "elementType": "leg",
+        		        "mode": "car",
+        		        "departureTimeSeconds": 28800,
+        		        "travelTimeSeconds": 900,
+        		        "route": {
+        		          "routeType": "network",
+        		          "startLinkId": "1",
+        		          "endLinkId": "3",
+        		          "linkIds": ["2"]
+        		        }
+        		      },
+        		      {
+        		        "elementType": "activity",
+        		        "type": "work",
+        		        "facilityId": "3"
+        		      }
+        		    ]
+        		  }
+        		}
+        		""";
 
         IToolCall call = new SimpleToolCall("call_extract_plan", "extract_plan", argumentsJson);
         IToolResponse<?> response = manager.runToolCall(call, null);
@@ -109,7 +109,7 @@ class ToolCallingAndConversionIT {
         FakeChatCompletionClient fakeClient = new FakeChatCompletionClient(List.of(
                 FakeResponses.toolCallingAssistant(
                         new SimpleToolCall("call_echo_1", "echo_tool",
-                                "{\"message\":\"matsim live\",\"shout\":true}")),
+                                "{\"message\":{\"value\":\"matsim live\"},\"shout\":{\"value\":true}}")),
                 FakeResponses.assistant("Tool result received and accepted.")));
 
         DefaultChatManager manager = new DefaultChatManager(
@@ -131,13 +131,14 @@ class ToolCallingAndConversionIT {
 
         assertEquals(2, fakeClient.capturedMessages.size(),
                 "The manager should have called the client once for the assistant tool call and once after tool execution.");
+
         IRequestMessage secondCallMessage = fakeClient.capturedMessages.get(1);
         assertEquals(Role.TOOL, secondCallMessage.getRole());
         assertNotNull(secondCallMessage.getToolResponses());
         assertEquals(1, secondCallMessage.getToolResponses().size());
         assertEquals("MATSIM LIVE", secondCallMessage.getToolResponses().get(0).getResponseJson());
     }
-
+    
     private static class EchoTool implements ITool<String> {
         private final Map<String, ToolArgument<?, ? extends ToolArgumentDTO<?>>> arguments = new HashMap<>();
         private Map<String, Object> context = new HashMap<>();
@@ -146,6 +147,7 @@ class ToolCallingAndConversionIT {
             registerArgument(SimpleStringDTO.forArgument("message"));
             registerArgument(SimpleBooleanDTO.forArgument("shout"));
         }
+        
 
         @Override
         public String getName() {
@@ -181,7 +183,7 @@ class ToolCallingAndConversionIT {
         }
 
         @Override
-        public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context)
+        public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context, ErrorMessages em)
                 throws VerificationFailedException {
             if (arguments.get("message") == null) {
                 throw new VerificationFailedException(List.of("message is required"));

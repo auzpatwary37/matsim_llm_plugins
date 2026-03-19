@@ -12,6 +12,8 @@ import org.matsim.facilities.ActivityFacility;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import tools.ErrorMessages;
+
 public class ActivityDTO extends PlanElementDTO<Activity> {
 
     // Discriminator for nested polymorphic DTO parsing
@@ -51,8 +53,8 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
     }
 
     @Override
-    public Activity toBaseClass(Map<String, Object> context) {
-        if (!isVerified()) {
+    public Activity toBaseClass(Map<String, Object> context, ErrorMessages em) {
+        if (!isVerified(em)) {
             return null;
         }
 
@@ -67,33 +69,39 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
     }
 
     @Override
-    public boolean isVerified() {
+    public boolean isVerified(ErrorMessages em) {
+    	boolean outcome = true;
         if (!"activity".equals(elementType)) {
-            return false;
+            outcome = false;
+            em.addErrorMessages("elementType is not activity.");
         }
 
         if (type == null || type.trim().isEmpty()) {
-            return false;
+        	em.addErrorMessages("type is not defined for activity.");
+            outcome = false;
         }
 
         if (facilityId == null || facilityId.trim().isEmpty()) {
-            return false;
+        	em.addErrorMessages("Facility id is not present for activity type "+type);
+            outcome = false;
         }
 
         String t = type.trim();
         if (!isAllowedType(t)) {
-            return false;
+        	em.addErrorMessages("Unknown activity type.");
+            outcome =  false;
         }
 
 
         if (endTime != null) {
-            if (endTime < 0) {
-                return false;
+            if (endTime < 0||endTime>94000) {
+            	em.addErrorMessages("End time is negative or not in seconds.");
+                outcome = false;
             }
 
         }
 
-        return true;
+        return outcome;
     }
 
     public static Function<Activity, ActivityDTO> toDTOFromBaseObject() {
@@ -182,47 +190,7 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
                 || "bike interaction".equals(t);
     }
 
-    private static Double safeGetTimeSeconds(Activity a, String getterName) {
-        try {
-            Method m = a.getClass().getMethod(getterName);
-            Object v = m.invoke(a);
-            if (v == null) {
-                return null;
-            }
-
-            if (v instanceof Number) {
-                return ((Number) v).doubleValue();
-            }
-
-            try {
-                Method isDefined = v.getClass().getMethod("isDefined");
-                Method seconds = v.getClass().getMethod("seconds");
-                boolean defined = (boolean) isDefined.invoke(v);
-                if (!defined) {
-                    return null;
-                }
-                Object sec = seconds.invoke(v);
-                if (sec instanceof Number) {
-                    return ((Number) sec).doubleValue();
-                }
-            } catch (NoSuchMethodException ignored) {
-            }
-
-        } catch (Throwable ignored) {
-        }
-        return null;
-    }
-
-    private static void safeSetTimeSeconds(Activity a, String setterName, Double seconds) {
-        if (seconds == null) {
-            return;
-        }
-        try {
-            Method m = a.getClass().getMethod(setterName, double.class);
-            m.invoke(a, seconds.doubleValue());
-        } catch (Throwable ignored) {
-        }
-    }
+    
 
     @Override
     public String getElementType() {

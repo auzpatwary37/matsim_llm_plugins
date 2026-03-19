@@ -21,12 +21,12 @@ public class SimpleBooleanDTO extends ToolArgumentDTO<Boolean> {
     }
 
     @Override
-    public Boolean toBaseClass(Map<String, Object> context) {
+    public Boolean toBaseClass(Map<String, Object> context, ErrorMessages em) {
         return value;
     }
 
     @Override
-    public boolean isVerified() {
+    public boolean isVerified(ErrorMessages em) {
         return true; // or: return true if you want to allow default false
     }
 

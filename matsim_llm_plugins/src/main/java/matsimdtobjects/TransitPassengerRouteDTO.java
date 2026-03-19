@@ -15,6 +15,8 @@ import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import tools.ErrorMessages;
+
 public class TransitPassengerRouteDTO extends RouteDTO<TransitPassengerRoute> {
 
     // Discriminator for nested polymorphic DTO parsing
@@ -65,8 +67,8 @@ public class TransitPassengerRouteDTO extends RouteDTO<TransitPassengerRoute> {
     }
 
     @Override
-    public TransitPassengerRoute toBaseClass(Map<String, Object> context) {
-        if (!isVerified()) {
+    public TransitPassengerRoute toBaseClass(Map<String, Object> context, ErrorMessages em) {
+        if (!isVerified(em)) {
             return null;
         }
 
@@ -96,15 +98,50 @@ public class TransitPassengerRouteDTO extends RouteDTO<TransitPassengerRoute> {
     }
 
     @Override
-    public boolean isVerified() {
-        return "transit_passenger".equals(routeType)
-                && isNonBlank(accessLinkId)
-                && isNonBlank(egressLinkId)
-                && isNonBlank(accessStopId)
-                && isNonBlank(egressStopId)
-                && isNonBlank(lineId)
-                && isNonBlank(routeId)
-                && (departureId == null || isNonBlank(departureId));
+    public boolean isVerified(ErrorMessages em) {
+        boolean outcome = true;
+
+        if (!"transit_passenger".equals(routeType)) {
+            outcome = false;
+            em.addErrorMessages("routeType is not transit_passenger.");
+        }
+
+        if (!isNonBlank(accessLinkId)) {
+            outcome = false;
+            em.addErrorMessages("accessLinkId is not defined for transit passenger route.");
+        }
+
+        if (!isNonBlank(egressLinkId)) {
+            outcome = false;
+            em.addErrorMessages("egressLinkId is not defined for transit passenger route.");
+        }
+
+        if (!isNonBlank(accessStopId)) {
+            outcome = false;
+            em.addErrorMessages("accessStopId is not defined for transit passenger route.");
+        }
+
+        if (!isNonBlank(egressStopId)) {
+            outcome = false;
+            em.addErrorMessages("egressStopId is not defined for transit passenger route.");
+        }
+
+        if (!isNonBlank(lineId)) {
+            outcome = false;
+            em.addErrorMessages("lineId is not defined for transit passenger route.");
+        }
+
+        if (!isNonBlank(routeId)) {
+            outcome = false;
+            em.addErrorMessages("routeId is not defined for transit passenger route.");
+        }
+
+        if (departureId != null && !isNonBlank(departureId)) {
+            outcome = false;
+            em.addErrorMessages("departureId is present but blank.");
+        }
+
+        return outcome;
     }
 
     public static Function<TransitPassengerRoute, TransitPassengerRouteDTO> toDTOFromBaseObject() {

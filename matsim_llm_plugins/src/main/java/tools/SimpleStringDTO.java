@@ -21,12 +21,12 @@ public class SimpleStringDTO extends ToolArgumentDTO<String> {
     }
 
     @Override
-    public String toBaseClass(Map<String, Object> context) {
+    public String toBaseClass(Map<String, Object> context,ErrorMessages em) {
         return value;
     }
 
     @Override
-    public boolean isVerified() {
+    public boolean isVerified(ErrorMessages em) {
         return value != null;
     }
 

@@ -12,6 +12,7 @@ import com.google.gson.JsonObject;
 import matsimdtobjects.PlanDTO;
 import rag.IVectorDB;
 import tools.DefaultToolResponse;
+import tools.ErrorMessages;
 import tools.ITool;
 import tools.IToolResponse;
 import tools.ToolArgument;
@@ -80,7 +81,7 @@ public class ExtractPlanTool implements ITool<Plan> {
     }
 
     @Override
-    public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context)
+    public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context, ErrorMessages em)
             throws VerificationFailedException {
 
         List<String> errors = new ArrayList<>();
@@ -102,9 +103,9 @@ public class ExtractPlanTool implements ITool<Plan> {
                 }
             }
         }
-
+        em.getErrorMessages().addAll(errors);
         if (!errors.isEmpty()) {
-            throw new VerificationFailedException(errors);
+            throw new VerificationFailedException(errors);//should this be thrown or all errors should be collected first? 
         }
     }
 

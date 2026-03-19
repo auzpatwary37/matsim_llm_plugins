@@ -80,7 +80,7 @@ public interface ITool<T>{
     default IToolResponse<T> call(String argumentsJson, String toolCallId, IVectorDB vectorDB) {
         Gson gson = new Gson();
         Map<String, Object> baseObjects = new HashMap<>();
-
+        ErrorMessages em = new ErrorMessages();
         try {
             JsonObject parsed = gson.fromJson(argumentsJson, JsonObject.class);
 
@@ -88,15 +88,15 @@ public interface ITool<T>{
                 String key = entry.getKey();
                 if (parsed.has(key)) {
                     ToolArgument<?, ? extends ToolArgumentDTO<?>> arg = entry.getValue();
-                    Object base = arg.fromJson(parsed.get(key).toString(), gson);
+                    Object base = arg.fromJson(parsed.get(key).toString(), gson, em);
                     baseObjects.put(key, base);
                 }
             }
             
-            this.verifyArguments(baseObjects, this.getContextObject());
+            this.verifyArguments(baseObjects, this.getContextObject(),em);
             return callTool(toolCallId, baseObjects, vectorDB);
         } catch (Exception ex) {
-            return handleErrorMessage(toolCallId, ex);
+            return handleErrorMessage(toolCallId, ex, em);
         }
     }
 
@@ -128,10 +128,10 @@ public interface ITool<T>{
      * @param ex The exception that occurred during parsing or execution
      * @return A tool response suitable for LLM feedback
      */
-    default IToolResponse<T> handleErrorMessage(String callId, Exception ex) {
+    default IToolResponse<T> handleErrorMessage(String callId, Exception ex, ErrorMessages em) {
         JsonObject errorJson = new JsonObject();
         errorJson.addProperty("status", "ERROR");
-        errorJson.addProperty("message", "Tool invocation failed: " + ex.getMessage());
+        errorJson.addProperty("message", "Tool invocation failed: " + ex.getMessage()+" the full reasons are :"+em.getCombinedErrorMessages());
 
         return new DefaultToolResponse<T>(
             callId,
@@ -143,7 +143,7 @@ public interface ITool<T>{
     }
     
     
-    public void verifyArguments(Map<String,Object> arguments, Map<String,Object> context) throws VerificationFailedException;
+    public void verifyArguments(Map<String,Object> arguments, Map<String,Object> context, ErrorMessages em) throws VerificationFailedException;
 
 
     Map<String, Object> getContextObject();

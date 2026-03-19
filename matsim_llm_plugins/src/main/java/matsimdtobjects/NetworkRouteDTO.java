@@ -13,6 +13,8 @@ import org.matsim.core.population.routes.RouteUtils;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import tools.ErrorMessages;
+
 public class NetworkRouteDTO extends RouteDTO<NetworkRoute> {
 
     // Keep it dead-simple for tool calling:
@@ -39,8 +41,8 @@ public class NetworkRouteDTO extends RouteDTO<NetworkRoute> {
     }
 
     @Override
-    public NetworkRoute toBaseClass(Map<String, Object> context) {
-        if (!isVerified()) return null;
+    public NetworkRoute toBaseClass(Map<String, Object> context, ErrorMessages em) {
+        if (!isVerified(em)) return null;
         
         Id<Link> start = Id.createLinkId(startLinkId);
         Id<Link> end = Id.createLinkId(endLinkId);
@@ -64,18 +66,36 @@ public class NetworkRouteDTO extends RouteDTO<NetworkRoute> {
     }
 
     @Override
-    public boolean isVerified() {
-    	if (!"network".equals(routeType)) return false;
-        if (startLinkId == null || startLinkId.trim().isEmpty()) return false;
-        if (endLinkId == null || endLinkId.trim().isEmpty()) return false;
+    public boolean isVerified(ErrorMessages em) {
+        boolean outcome = true;
+
+        if (!"network".equals(routeType)) {
+            outcome = false;
+            em.addErrorMessages("routeType is not network.");
+        }
+
+        if (startLinkId == null || startLinkId.trim().isEmpty()) {
+            outcome = false;
+            em.addErrorMessages("startLinkId is not defined for network route.");
+        }
+
+        if (endLinkId == null || endLinkId.trim().isEmpty()) {
+            outcome = false;
+            em.addErrorMessages("endLinkId is not defined for network route.");
+        }
 
         // linkIds can be empty; if present, must not contain blanks
         if (linkIds != null) {
-            for (String s : linkIds) {
-                if (s == null || s.trim().isEmpty()) return false;
+            for (int i = 0; i < linkIds.size(); i++) {
+                String s = linkIds.get(i);
+                if (s == null || s.trim().isEmpty()) {
+                    outcome = false;
+                    em.addErrorMessages("linkIds contains a null or blank entry at position " + i + ".");
+                }
             }
         }
-        return true;
+
+        return outcome;
     }
 
     public static Function<NetworkRoute, NetworkRouteDTO> toDTOFromBaseObject() {

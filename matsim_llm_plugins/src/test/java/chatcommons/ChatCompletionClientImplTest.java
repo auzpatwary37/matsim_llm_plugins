@@ -1,7 +1,6 @@
 package chatcommons;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,6 +18,7 @@ import rag.IVectorDB;
 import rag.VectorDBImplement;
 import tools.DefaultToolManager;
 import tools.DefaultToolResponse;
+import tools.ErrorMessages;
 import tools.ITool;
 import tools.IToolManager;
 import tools.IToolResponse;
@@ -267,7 +267,7 @@ class EchoTool implements ITool<String> {
 
 
 	@Override
-	public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context)
+	public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context, ErrorMessages em)
 			throws VerificationFailedException {
 		// TODO Auto-generated method stub
 		
@@ -340,7 +340,7 @@ class ArithmeticTool implements ITool<Double> {
 	}
 
 	@Override
-	public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context)
+	public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context, ErrorMessages em)
 			throws VerificationFailedException {
 		// TODO Auto-generated method stub
 		

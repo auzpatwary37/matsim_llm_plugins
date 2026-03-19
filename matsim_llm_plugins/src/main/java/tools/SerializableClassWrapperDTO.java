@@ -45,7 +45,7 @@ public class SerializableClassWrapperDTO<T> extends ToolArgumentDTO<T> {
      * Returns the original base class instance.
      */
     @Override
-    public T toBaseClass(Map<String, Object> context) {
+    public T toBaseClass(Map<String, Object> context, ErrorMessages em) {
         return instance;
     }
 
@@ -141,7 +141,7 @@ public class SerializableClassWrapperDTO<T> extends ToolArgumentDTO<T> {
     }
 
     @Override
-    public boolean isVerified() {
+    public boolean isVerified(ErrorMessages em) {
         return true; // no validation logic for wrapper — assumed valid after deserialization
     }
 }
