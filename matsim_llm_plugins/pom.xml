@@ -281,44 +281,55 @@
     <version>0.1.7</version>
 </dependency>
 
-
-<!-- https://mvnrepository.com/artifact/dev.langchain4j/langchain4j-core -->
-<dependency>
-    <groupId>dev.langchain4j</groupId>
-    <artifactId>langchain4j-core</artifactId>
-    <version>0.32.0</version>
-</dependency>
-<!-- https://mvnrepository.com/artifact/dev.langchain4j/langchain4j -->
+<!-- Source: https://mvnrepository.com/artifact/dev.langchain4j/langchain4j -->
 <dependency>
     <groupId>dev.langchain4j</groupId>
     <artifactId>langchain4j</artifactId>
-    <version>0.32.0</version>
-    <scope>test</scope>
+    <version>1.12.2</version>
+    <scope>compile</scope>
 </dependency>
+
+<!-- Source: https://mvnrepository.com/artifact/dev.langchain4j/langchain4j-core -->
 <dependency>
     <groupId>dev.langchain4j</groupId>
-    <artifactId>langchain4j-local-ai</artifactId>
-    <version>0.32.0</version>
+    <artifactId>langchain4j-core</artifactId>
+    <version>1.12.2</version>
+    <scope>compile</scope>
 </dependency>
 
 
-<dependency>
-    <groupId>dev.langchain4j</groupId>
-    <artifactId>langchain4j-ollama</artifactId>
-    <version>0.32.0</version>
-</dependency>
-
+<!-- Source: https://mvnrepository.com/artifact/dev.langchain4j/langchain4j-open-ai -->
 <dependency>
     <groupId>dev.langchain4j</groupId>
     <artifactId>langchain4j-open-ai</artifactId>
-    <version>0.32.0</version>
+    <version>1.12.2</version>
+    <scope>compile</scope>
 </dependency>
 
+<!-- Source: https://mvnrepository.com/artifact/dev.langchain4j/langchain4j-ollama -->
 <dependency>
     <groupId>dev.langchain4j</groupId>
-    <artifactId>langchain4j-mistral-ai</artifactId>
-    <version>0.32.0</version>
+    <artifactId>langchain4j-ollama</artifactId>
+    <version>1.12.2</version>
+    <scope>compile</scope>
 </dependency>
+
+<!-- Source: https://mvnrepository.com/artifact/dev.langchain4j/langchain4j-anthropic -->
+<dependency>
+    <groupId>dev.langchain4j</groupId>
+    <artifactId>langchain4j-anthropic</artifactId>
+    <version>1.12.2</version>
+    <scope>compile</scope>
+</dependency>
+
+<!-- Source: https://mvnrepository.com/artifact/dev.langchain4j/langchain4j-qdrant -->
+<dependency>
+    <groupId>dev.langchain4j</groupId>
+    <artifactId>langchain4j-qdrant</artifactId>
+    <version>1.12.2-beta22</version>
+    <scope>compile</scope>
+</dependency>
+
 <!-- 
 <dependency>
 	    <groupId>com.github.matsim-scenarios</groupId>

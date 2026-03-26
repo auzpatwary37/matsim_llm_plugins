@@ -7,6 +7,7 @@ import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Route;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.population.routes.NetworkRoute;
+import org.matsim.core.utils.misc.OptionalTime;
 import org.matsim.pt.routes.TransitPassengerRoute;
 
 import com.google.gson.Gson;
@@ -17,16 +18,14 @@ import tools.ErrorMessages;
 
 public class LegDTO extends PlanElementDTO<Leg> {
 
-    // Discriminator for nested polymorphic DTO parsing
     public String elementType = "leg";
 
     public String mode;
 
-    // Optional
     public Double departureTimeSeconds;
     public Double travelTimeSeconds;
 
-    // Required in your current schema/validation design
+    // Optional
     public RouteDTO<?> route;
 
     public LegDTO() {
@@ -41,8 +40,8 @@ public class LegDTO extends PlanElementDTO<Leg> {
         }
 
         this.mode = leg.getMode();
-        this.departureTimeSeconds = safeOptionalTimeToDouble(leg.getDepartureTime());
-        this.travelTimeSeconds = safeOptionalTimeToDouble(leg.getTravelTime());
+        this.departureTimeSeconds = optionalTimeToDouble(leg.getDepartureTime());
+        this.travelTimeSeconds = optionalTimeToDouble(leg.getTravelTime());
 
         Route baseRoute = leg.getRoute();
 
@@ -52,9 +51,7 @@ public class LegDTO extends PlanElementDTO<Leg> {
             } else if (baseRoute instanceof TransitPassengerRoute) {
                 this.route = new TransitPassengerRouteDTO((TransitPassengerRoute) baseRoute);
             } else {
-                throw new RuntimeException(
-                        "Unsupported MATSim route type: " + baseRoute.getClass().getName()
-                );
+                this.route = new GenericRouteDTO(baseRoute);
             }
         }
     }
@@ -68,18 +65,20 @@ public class LegDTO extends PlanElementDTO<Leg> {
         Leg leg = PopulationUtils.createLeg(mode.trim());
 
         if (departureTimeSeconds != null) {
-            safeSetDepartureTime(leg, departureTimeSeconds);
+            leg.setDepartureTime(departureTimeSeconds);
         }
 
         if (travelTimeSeconds != null) {
-            safeSetTravelTime(leg, travelTimeSeconds);
+            leg.setTravelTime(travelTimeSeconds);
         }
 
-        Route matsimRoute = route.toBaseClass(context,em);
-        if (matsimRoute == null) {
-            return null;
+        if (route != null) {
+            Route matsimRoute = route.toBaseClass(context, em);
+            if (matsimRoute == null) {
+                return null;
+            }
+            leg.setRoute(matsimRoute);
         }
-        leg.setRoute(matsimRoute);
 
         return leg;
     }
@@ -113,13 +112,8 @@ public class LegDTO extends PlanElementDTO<Leg> {
             em.addErrorMessages("travelTimeSeconds is negative.");
         }
 
-        if (route == null) {
+        if (route != null && !route.isVerified(em)) {
             outcome = false;
-            em.addErrorMessages("route is not defined for leg.");
-        } else {
-            if (!route.isVerified(em)) {
-                outcome = false;
-            }
         }
 
         return outcome;
@@ -135,7 +129,7 @@ public class LegDTO extends PlanElementDTO<Leg> {
         schema.addProperty("additionalProperties", false);
         schema.addProperty(
                 "description",
-                "MATSim leg definition with constrained mode values and a required route."
+                "MATSim leg definition with constrained mode values and an optional route."
         );
 
         JsonObject props = new JsonObject();
@@ -172,7 +166,7 @@ public class LegDTO extends PlanElementDTO<Leg> {
         props.add("travelTimeSeconds", ttProp);
 
         JsonObject routeProp = RouteDTO.getJsonSchema();
-        routeProp.addProperty("description", "Required route object.");
+        routeProp.addProperty("description", "Optional route object.");
         props.add("route", routeProp);
 
         schema.add("properties", props);
@@ -180,38 +174,11 @@ public class LegDTO extends PlanElementDTO<Leg> {
         JsonArray required = new JsonArray();
         required.add("elementType");
         required.add("mode");
-        required.add("route");
         schema.add("required", required);
 
         return schema;
     }
-    
-//    @Override
-//    public void afterJsonLoad(String json, Gson gson) {
-//        JsonObject obj = gson.fromJson(json, JsonObject.class);
-//
-//        if (obj.has("route") && obj.get("route").isJsonObject()) {
-//            JsonObject routeObj = obj.getAsJsonObject("route");
-//
-//            if (!routeObj.has("routeType")) {
-//                throw new RuntimeException("Missing routeType in leg route");
-//            }
-//
-//            String routeType = routeObj.get("routeType").getAsString();
-//
-//            switch (routeType) {
-//                case "network":
-//                    this.route = gson.fromJson(routeObj, NetworkRouteDTO.class);
-//                    break;
-//                case "transit_passenger":
-//                    this.route = gson.fromJson(routeObj, TransitPassengerRouteDTO.class);
-//                    break;
-//                default:
-//                    throw new RuntimeException("Unknown routeType: " + routeType);
-//            }
-//        }
-//    }
-    
+
     public static LegDTO fromJsonObject(JsonObject obj, Gson gson) {
         LegDTO dto = new LegDTO();
 
@@ -237,7 +204,11 @@ public class LegDTO extends PlanElementDTO<Leg> {
             dto.travelTimeSeconds = obj.get("travelTimeSeconds").getAsDouble();
         }
 
-        if (obj.has("route") && obj.get("route").isJsonObject()) {
+        if (obj.has("route") && !obj.get("route").isJsonNull()) {
+            if (!obj.get("route").isJsonObject()) {
+                throw new RuntimeException("route exists in LegDTO JSON but is not a JSON object");
+            }
+
             JsonObject routeObj = obj.getAsJsonObject("route");
 
             if (!routeObj.has("routeType") || routeObj.get("routeType").isJsonNull()) {
@@ -250,17 +221,22 @@ public class LegDTO extends PlanElementDTO<Leg> {
                 case "network":
                     dto.route = NetworkRouteDTO.fromJsonObject(routeObj, gson);
                     break;
-
                 case "transit_passenger":
                     dto.route = TransitPassengerRouteDTO.fromJsonObject(routeObj, gson);
                     break;
-
+                case "generic":
+                    dto.route = GenericRouteDTO.fromJsonObject(routeObj, gson);
+                    break;
                 default:
                     throw new RuntimeException("Unknown routeType: " + routeType);
             }
         }
 
         return dto;
+    }
+
+    private static Double optionalTimeToDouble(OptionalTime t) {
+        return (t != null && t.isDefined()) ? t.seconds() : null;
     }
 
     private static boolean isNonBlank(String s) {
@@ -276,85 +252,11 @@ public class LegDTO extends PlanElementDTO<Leg> {
                 || "transit_walk".equals(mode);
     }
 
-    private static Double safeOptionalTimeToDouble(Object optionalTime) {
-        if (optionalTime == null) {
-            return null;
-        }
-
-        try {
-            java.lang.reflect.Method isDefined = optionalTime.getClass().getMethod("isDefined");
-            Object defined = isDefined.invoke(optionalTime);
-            if (defined instanceof Boolean && !((Boolean) defined)) {
-                return null;
-            }
-        } catch (Throwable ignored) {
-        }
-
-        try {
-            java.lang.reflect.Method seconds = optionalTime.getClass().getMethod("seconds");
-            Object value = seconds.invoke(optionalTime);
-            if (value instanceof Number) {
-                return ((Number) value).doubleValue();
-            }
-        } catch (Throwable ignored) {
-        }
-
-        try {
-            java.lang.reflect.Method orElse = optionalTime.getClass().getMethod("orElse", double.class);
-            Object value = orElse.invoke(optionalTime, Double.NaN);
-            if (value instanceof Number) {
-                double v = ((Number) value).doubleValue();
-                return Double.isNaN(v) ? null : v;
-            }
-        } catch (Throwable ignored) {
-        }
-
-        return null;
-    }
-
-    private static void safeSetDepartureTime(Leg leg, double seconds) {
-        try {
-            java.lang.reflect.Method method = leg.getClass().getMethod("setDepartureTime", double.class);
-            method.invoke(leg, seconds);
-            return;
-        } catch (Throwable ignored) {
-        }
-
-        try {
-            Class<?> optionalTimeClass = Class.forName("org.matsim.core.utils.misc.OptionalTime");
-            java.lang.reflect.Method definedMethod = optionalTimeClass.getMethod("defined", double.class);
-            Object optionalTime = definedMethod.invoke(null, seconds);
-
-            java.lang.reflect.Method method = leg.getClass().getMethod("setDepartureTime", optionalTimeClass);
-            method.invoke(leg, optionalTime);
-        } catch (Throwable ignored) {
-        }
-    }
-
-    private static void safeSetTravelTime(Leg leg, double seconds) {
-        try {
-            java.lang.reflect.Method method = leg.getClass().getMethod("setTravelTime", double.class);
-            method.invoke(leg, seconds);
-            return;
-        } catch (Throwable ignored) {
-        }
-
-        try {
-            Class<?> optionalTimeClass = Class.forName("org.matsim.core.utils.misc.OptionalTime");
-            java.lang.reflect.Method definedMethod = optionalTimeClass.getMethod("defined", double.class);
-            Object optionalTime = definedMethod.invoke(null, seconds);
-
-            java.lang.reflect.Method method = leg.getClass().getMethod("setTravelTime", optionalTimeClass);
-            method.invoke(leg, optionalTime);
-        } catch (Throwable ignored) {
-        }
-    }
-
     @Override
     public String getElementType() {
         return elementType;
     }
-    
+
     @Override
     public JsonObject toJsonObject(Gson gson) {
         JsonObject obj = new JsonObject();
@@ -371,13 +273,7 @@ public class LegDTO extends PlanElementDTO<Leg> {
         }
 
         if (route != null) {
-            if (route instanceof NetworkRouteDTO) {
-                obj.add("route", ((NetworkRouteDTO) route).toJsonObject(gson));
-            } else if (route instanceof TransitPassengerRouteDTO) {
-                obj.add("route", ((TransitPassengerRouteDTO) route).toJsonObject(gson));
-            } else {
-                throw new RuntimeException("Unsupported route DTO subtype: " + route.getClass().getName());
-            }
+            obj.add("route", route.toJsonObject(gson));
         }
 
         return obj;

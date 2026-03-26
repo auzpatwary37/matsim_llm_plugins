@@ -18,6 +18,7 @@ public abstract class RouteDTO<R extends Route> extends ToolArgumentDTO<R> {
         JsonArray oneOf = new JsonArray();
         oneOf.add(NetworkRouteDTO.getJsonSchema());
         oneOf.add(TransitPassengerRouteDTO.getJsonSchema());
+        oneOf.add(GenericRouteDTO.getJsonSchema());
 
         schema.add("oneOf", oneOf);
         return schema;

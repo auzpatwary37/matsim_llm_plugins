@@ -329,15 +329,6 @@ public class DTOUnitTest {
         assertNull(dto.toBaseClass(emptyContext(),em));
     }
 
-    @Test
-    void testLegDTO_missingRouteShouldFail() {
-        LegDTO dto = new LegDTO();
-        dto.elementType = "leg";
-        dto.mode = "walk";
-        ErrorMessages em = new ErrorMessages();
-        assertFalse(dto.isVerified(em));
-        assertNull(dto.toBaseClass(emptyContext(),em));
-    }
 
     @Test
     void testSchemasExist() {

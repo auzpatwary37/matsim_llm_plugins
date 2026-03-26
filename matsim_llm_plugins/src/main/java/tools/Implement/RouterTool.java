@@ -1,5 +1,352 @@
 package tools.Implement;
 
-public class RouterTool{
-	
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.population.Activity;
+import org.matsim.api.core.v01.population.Leg;
+import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.Plan;
+import org.matsim.api.core.v01.population.PlanElement;
+import org.matsim.core.population.PopulationUtils;
+import org.matsim.facilities.ActivityFacilities;
+import org.matsim.facilities.ActivityFacility;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+import matsimdtobjects.PlanDTO;
+import rag.IVectorDB;
+import tools.DefaultToolResponse;
+import tools.ErrorMessages;
+import tools.ITool;
+import tools.IToolResponse;
+import tools.SimpleDoubleDTO;
+import tools.SimpleStringDTO;
+import tools.ToolArgument;
+import tools.ToolArgumentDTO;
+import tools.VerificationFailedException;
+
+public class RouterTool implements ITool<Plan> {
+
+    private final Map<String, ToolArgument<?, ? extends ToolArgumentDTO<?>>> arguments = new HashMap<>();
+    private Map<String, Object> context = new HashMap<>();
+
+    public RouterTool() {
+        registerArgument(SimpleStringDTO.forArgument("fromFacilityId"));
+        registerArgument(SimpleStringDTO.forArgument("toFacilityId"));
+        registerArgument(SimpleStringDTO.forArgument("mode"));
+        registerArgument(SimpleDoubleDTO.forArgument("departureTimeSeconds"));
+    }
+
+    @Override
+    public String getName() {
+        return "router_tool";
+    }
+
+    @Override
+    public Class<Plan> getOutputClass() {
+        return Plan.class;
+    }
+
+    @Override
+    public String getDescription() {
+        return "Routes between two MATSim facilities using the MATSim TripRouter. "
+             + "Returns the full routed plan-element stack including PT interaction activities and multiple legs.";
+    }
+
+    @Override
+    public boolean isDummy() {
+        return false;
+    }
+
+    @Override
+    public Map<String, ToolArgument<?, ? extends ToolArgumentDTO<?>>> getRegisteredArguments() {
+        return arguments;
+    }
+
+    @Override
+    public JsonObject getJsonSchema() {
+        JsonObject schema = new JsonObject();
+        schema.addProperty("name", getName());
+        schema.addProperty("description", getDescription());
+
+        JsonObject parameters = new JsonObject();
+        parameters.addProperty("type", "object");
+
+        JsonObject properties = new JsonObject();
+        properties.add("fromFacilityId", SimpleStringDTO.STATIC_SCHEMA);
+        properties.add("toFacilityId", SimpleStringDTO.STATIC_SCHEMA);
+        properties.add("mode", SimpleStringDTO.STATIC_SCHEMA);
+        properties.add("departureTimeSeconds", SimpleDoubleDTO.STATIC_SCHEMA);
+
+        JsonArray required = new JsonArray();
+        required.add("fromFacilityId");
+        required.add("toFacilityId");
+        required.add("mode");
+
+        parameters.add("properties", properties);
+        parameters.add("required", required);
+
+        schema.add("parameters", parameters);
+        return schema;
+    }
+
+    @Override
+    public IToolResponse<Plan> callTool(String id, Map<String, Object> arguments, IVectorDB vectorDB) {
+        String fromFacilityId = (String) arguments.get("fromFacilityId");
+        String toFacilityId = (String) arguments.get("toFacilityId");
+        String mode = (String) arguments.get("mode");
+        Double departureTimeSeconds = (Double) arguments.get("departureTimeSeconds");
+
+        if (departureTimeSeconds == null) {
+            departureTimeSeconds = 0.0;
+        }
+
+        ActivityFacilities facilities = getFacilitiesFromContext();
+        Object tripRouter = getTripRouterFromContext();
+        Person person = getOptionalPersonFromContext();
+
+        ActivityFacility fromFacility = facilities.getFacilities().get(
+            Id.create(fromFacilityId.trim(), ActivityFacility.class)
+        );
+        ActivityFacility toFacility = facilities.getFacilities().get(
+            Id.create(toFacilityId.trim(), ActivityFacility.class)
+        );
+
+        if (fromFacility == null) {
+            throw new RuntimeException("Origin facility not found: " + fromFacilityId);
+        }
+        if (toFacility == null) {
+            throw new RuntimeException("Destination facility not found: " + toFacilityId);
+        }
+
+        List<? extends PlanElement> routedElements = invokeTripRouterCalcRoute(
+            tripRouter,
+            mode.trim(),
+            fromFacility,
+            toFacility,
+            departureTimeSeconds,
+            person
+        );
+
+        if (routedElements == null || routedElements.isEmpty()) {
+            throw new RuntimeException("TripRouter returned no plan elements.");
+        }
+
+        Plan routedPlan = PopulationUtils.createPlan();
+
+        for (PlanElement pe : routedElements) {
+            if (pe instanceof Activity) {
+                routedPlan.addActivity((Activity) pe);
+            } else if (pe instanceof Leg) {
+                routedPlan.addLeg((Leg) pe);
+            } else {
+                throw new RuntimeException("Unsupported routed plan element type: " + pe.getClass().getName());
+            }
+        }
+
+        Gson gson = new Gson();
+        JsonObject response = new PlanDTO(routedPlan).toJsonObject(gson);
+
+        return new DefaultToolResponse<>(
+            id,
+            getName(),
+            response.toString(),
+            routedPlan,
+            false
+        );
+    }
+
+    @Override
+    public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context, ErrorMessages em)
+            throws VerificationFailedException {
+
+        List<String> errors = new ArrayList<>();
+
+        if (arguments == null) {
+            errors.add("Arguments map is null.");
+        } else {
+            String fromFacilityId = (String) arguments.get("fromFacilityId");
+            String toFacilityId = (String) arguments.get("toFacilityId");
+            String mode = (String) arguments.get("mode");
+            Double departureTimeSeconds = (Double) arguments.get("departureTimeSeconds");
+
+            if (fromFacilityId == null || fromFacilityId.trim().isEmpty()) {
+                errors.add("Missing or empty fromFacilityId.");
+            }
+
+            if (toFacilityId == null || toFacilityId.trim().isEmpty()) {
+                errors.add("Missing or empty toFacilityId.");
+            }
+
+            if (mode == null || mode.trim().isEmpty()) {
+                errors.add("Missing or empty mode.");
+            } else if (!isAllowedMode(mode.trim())) {
+                errors.add("Unsupported routing mode: " + mode
+                        + ". Supported modes are car, pt, car_passenger, bike, walk, transit_walk.");
+            }
+
+            if (departureTimeSeconds != null && departureTimeSeconds < 0) {
+                errors.add("departureTimeSeconds cannot be negative.");
+            }
+
+            if (context == null) {
+                errors.add("Tool context is null.");
+            } else {
+                Object tripRouterObj = getContextValue(context, "tripRouter", "router");
+                if (tripRouterObj == null) {
+                    errors.add("Context does not contain TripRouter under key 'tripRouter' or 'router'.");
+                }
+
+                Object facilitiesObj = getContextValue(context, "activityFacilities", "facilities");
+                if (!(facilitiesObj instanceof ActivityFacilities)) {
+                    errors.add("Context does not contain ActivityFacilities under key 'activityFacilities' or 'facilities'.");
+                } else {
+                    ActivityFacilities facilities = (ActivityFacilities) facilitiesObj;
+
+                    if (fromFacilityId != null && !fromFacilityId.trim().isEmpty()) {
+                        if (!facilities.getFacilities().containsKey(
+                                Id.create(fromFacilityId.trim(), ActivityFacility.class))) {
+                            errors.add("Origin facilityId not found: " + fromFacilityId);
+                        }
+                    }
+
+                    if (toFacilityId != null && !toFacilityId.trim().isEmpty()) {
+                        if (!facilities.getFacilities().containsKey(
+                                Id.create(toFacilityId.trim(), ActivityFacility.class))) {
+                            errors.add("Destination facilityId not found: " + toFacilityId);
+                        }
+                    }
+                }
+            }
+        }
+
+        em.getErrorMessages().addAll(errors);
+
+        if (!errors.isEmpty()) {
+            throw new VerificationFailedException(errors);
+        }
+    }
+
+    @Override
+    public Map<String, Object> getContextObject() {
+        return context;
+    }
+
+    @Override
+    public void setContextObject(Map<String, Object> context) {
+        this.context = context;
+    }
+
+    private ActivityFacilities getFacilitiesFromContext() {
+        Object obj = getContextValue(this.context, "activityFacilities", "facilities");
+        if (!(obj instanceof ActivityFacilities)) {
+            throw new RuntimeException(
+                "RouterTool requires ActivityFacilities in context under key 'activityFacilities' or 'facilities'."
+            );
+        }
+        return (ActivityFacilities) obj;
+    }
+
+    private Object getTripRouterFromContext() {
+        Object obj = getContextValue(this.context, "tripRouter", "router");
+        if (obj == null) {
+            throw new RuntimeException(
+                "RouterTool requires TripRouter in context under key 'tripRouter' or 'router'."
+            );
+        }
+        return obj;
+    }
+
+    private Person getOptionalPersonFromContext() {
+        Object obj = getContextValue(this.context, "person");
+        if (obj instanceof Person) {
+            return (Person) obj;
+        }
+        return null;
+    }
+
+    private Object getContextValue(Map<String, Object> context, String... keys) {
+        if (context == null) {
+            return null;
+        }
+        for (String key : keys) {
+            if (context.containsKey(key)) {
+                return context.get(key);
+            }
+        }
+        return null;
+    }
+
+    private boolean isAllowedMode(String mode) {
+        return "car".equals(mode)
+                || "pt".equals(mode)
+                || "car_passenger".equals(mode)
+                || "bike".equals(mode)
+                || "walk".equals(mode)
+                || "transit_walk".equals(mode);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<? extends PlanElement> invokeTripRouterCalcRoute(
+            Object tripRouter,
+            String mode,
+            ActivityFacility fromFacility,
+            ActivityFacility toFacility,
+            double departureTimeSeconds,
+            Person person) {
+
+        Method[] methods = tripRouter.getClass().getMethods();
+        List<Exception> failures = new ArrayList<>();
+
+        for (Method m : methods) {
+            if (!"calcRoute".equals(m.getName())) {
+                continue;
+            }
+
+            Class<?>[] p = m.getParameterTypes();
+
+            try {
+                if (p.length == 5) {
+                    Object result = m.invoke(
+                        tripRouter,
+                        mode,
+                        fromFacility,
+                        toFacility,
+                        departureTimeSeconds,
+                        person
+                    );
+                    return (List<? extends PlanElement>) result;
+                }
+
+                if (p.length == 6) {
+                    Object result = m.invoke(
+                        tripRouter,
+                        mode,
+                        fromFacility,
+                        toFacility,
+                        departureTimeSeconds,
+                        person,
+                        null
+                    );
+                    return (List<? extends PlanElement>) result;
+                }
+            } catch (Exception e) {
+                failures.add(e);
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Could not invoke TripRouter.calcRoute(...) with supported overloads.");
+        if (!failures.isEmpty()) {
+            sb.append(" Tried ").append(failures.size()).append(" overload(s).");
+        }
+        throw new RuntimeException(sb.toString());
+    }
 }
