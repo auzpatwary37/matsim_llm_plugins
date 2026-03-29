@@ -48,22 +48,25 @@ class ChatCompletionClientImplTest {
 	}
 
 	
+
+
+
 	public void setupLMStudio() {
 		LLMConfigGroup llmConfig = new LLMConfigGroup();
     	llmConfig.setBackend(LLMConfigGroup.BackendType.LM_STUDIO);
     	llmConfig.setAuthorization("lm-studio");
 //    	llmConfig.setProject(APIKeys.PROJECT_ID);
 //    	llmConfig.setOrganization(APIKeys.ORGANIZATION_ID);
-    	llmConfig.setModelName("qwen/qwen3-14b");
+    	llmConfig.setModelName("qwen/qwen3.5-9b");
     	llmConfig.setLlmHost("localhost");
     	llmConfig.setLlmPort(1234);
-    	llmConfig.setEmbeddingModelName("text-embedding-nomic-embed-text-v1.5@q4_k_m:2");
+    	llmConfig.setEmbeddingModelName("text-embedding-granite-embedding-278m-multilingual");
     	llmConfig.setEnableContextRetrieval(true);
     	llmConfig.setUseHttps(false);
     	llmConfig.setLlmPath("/v1/chat/completions");
     	llmConfig.setVectorDBSourceFile("src/test/resources/Chromadb/chromaBase.txt");
     	llmConfig.setVectorDbHost("localhost");
-    	llmConfig.setVectorDbPort(8000);
+    	llmConfig.setVectorDbPort(6334);
     	llmConfig.setEmbeddingPath("/v1/embeddings");
     	llmConfig.setVectorDbCollectionName("newLmStudioCollections");
     	
