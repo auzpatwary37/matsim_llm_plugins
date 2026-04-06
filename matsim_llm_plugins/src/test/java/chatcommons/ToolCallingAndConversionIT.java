@@ -77,7 +77,7 @@ class ToolCallingAndConversionIT {
         		""";
 
         IToolCall call = new SimpleToolCall("call_extract_plan", "extract_plan", argumentsJson);
-        IToolResponse<?> response = manager.runToolCall(call, null);
+        IToolResponse<?> response = manager.runToolCall(call, null, null);
 
         assertNotNull(response);
         assertEquals("extract_plan", response.getName());

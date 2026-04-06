@@ -43,25 +43,25 @@ public class DefaultToolManager implements IToolManager {
     }
 
     @Override
-    public <T> IToolResponse<T> runToolCall(IToolCall call, IVectorDB vectorDB) {
+    public <T> IToolResponse<T> runToolCall(IToolCall call, IVectorDB vectorDB, Map<String, Object> context) {
         @SuppressWarnings("unchecked")
         ITool<T> tool = (ITool<T>) getByName(call.getName());
-        return tool.call(call.getArguments(),call.getId(), vectorDB);
+        return tool.call(call.getArguments(),call.getId(), vectorDB, context);
     }
 
     @Override
-    public List<IToolResponse<?>> runToolCalls(List<IToolCall> calls, IVectorDB vectorDB) {
+    public List<IToolResponse<?>> runToolCalls(List<IToolCall> calls, IVectorDB vectorDB, Map<String, Object> context) {
         List<IToolResponse<?>> results = new ArrayList<>();
         for (IToolCall call : calls) {
-            IToolResponse<?> response = runToolCall(call, vectorDB);
+            IToolResponse<?> response = runToolCall(call, vectorDB,context);
             results.add(response);  // include both dummy and real tool responses
         }
         return results;
     }
 
     @Override
-    public IRequestMessage buildToolResponseMessage(List<IToolCall> calls, IVectorDB vectorDB) {
-        List<IToolResponse<?>> allResponses = runToolCalls(calls, vectorDB);
+    public IRequestMessage buildToolResponseMessage(List<IToolCall> calls, IVectorDB vectorDB, Map<String, Object> context) {
+        List<IToolResponse<?>> allResponses = runToolCalls(calls, vectorDB, context);
 
         // Only include tool responses that should be sent back to the LLM
         List<IToolResponse<?>> forLLM = allResponses.stream()

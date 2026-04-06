@@ -13,12 +13,14 @@ import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.core.population.PopulationUtils;
+import org.matsim.core.router.TripRouter;
 import org.matsim.facilities.ActivityFacilities;
 import org.matsim.facilities.ActivityFacility;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.inject.Provider;
 
 import matsimdtobjects.PlanDTO;
 import rag.IVectorDB;
@@ -109,7 +111,7 @@ public class RouterTool implements ITool<Plan> {
         }
 
         ActivityFacilities facilities = getFacilitiesFromContext();
-        Object tripRouter = getTripRouterFromContext();
+        Provider<TripRouter> tripRouter = getTripRouterProviderFromContext();
         Person person = getOptionalPersonFromContext();
 
         ActivityFacility fromFacility = facilities.getFacilities().get(
@@ -126,14 +128,17 @@ public class RouterTool implements ITool<Plan> {
             throw new RuntimeException("Destination facility not found: " + toFacilityId);
         }
 
-        List<? extends PlanElement> routedElements = invokeTripRouterCalcRoute(
-            tripRouter,
-            mode.trim(),
-            fromFacility,
-            toFacility,
-            departureTimeSeconds,
-            person
-        );
+        List<? extends PlanElement> routedElements = tripRouter.get().calcRoute(mode, fromFacility, toFacility, 
+        		departureTimeSeconds, person, null);
+        
+//        List<? extends PlanElement> routedElements = invokeTripRouterCalcRoute(
+//            tripRouter,
+//            mode.trim(),
+//            fromFacility,
+//            toFacility,
+//            departureTimeSeconds,
+//            person
+//        );
 
         if (routedElements == null || routedElements.isEmpty()) {
             throw new RuntimeException("TripRouter returned no plan elements.");
@@ -254,8 +259,8 @@ public class RouterTool implements ITool<Plan> {
         return (ActivityFacilities) obj;
     }
 
-    private Object getTripRouterFromContext() {
-        Object obj = getContextValue(this.context, "tripRouter", "router");
+    private Provider<TripRouter> getTripRouterProviderFromContext() {
+    	Provider<TripRouter> obj = (Provider<TripRouter>)getContextValue(this.context, "tripRoutersProvider");
         if (obj == null) {
             throw new RuntimeException(
                 "RouterTool requires TripRouter in context under key 'tripRouter' or 'router'."
@@ -292,61 +297,5 @@ public class RouterTool implements ITool<Plan> {
                 || "walk".equals(mode)
                 || "transit_walk".equals(mode);
     }
-
-    @SuppressWarnings("unchecked")
-    private List<? extends PlanElement> invokeTripRouterCalcRoute(
-            Object tripRouter,
-            String mode,
-            ActivityFacility fromFacility,
-            ActivityFacility toFacility,
-            double departureTimeSeconds,
-            Person person) {
-
-        Method[] methods = tripRouter.getClass().getMethods();
-        List<Exception> failures = new ArrayList<>();
-
-        for (Method m : methods) {
-            if (!"calcRoute".equals(m.getName())) {
-                continue;
-            }
-
-            Class<?>[] p = m.getParameterTypes();
-
-            try {
-                if (p.length == 5) {
-                    Object result = m.invoke(
-                        tripRouter,
-                        mode,
-                        fromFacility,
-                        toFacility,
-                        departureTimeSeconds,
-                        person
-                    );
-                    return (List<? extends PlanElement>) result;
-                }
-
-                if (p.length == 6) {
-                    Object result = m.invoke(
-                        tripRouter,
-                        mode,
-                        fromFacility,
-                        toFacility,
-                        departureTimeSeconds,
-                        person,
-                        null
-                    );
-                    return (List<? extends PlanElement>) result;
-                }
-            } catch (Exception e) {
-                failures.add(e);
-            }
-        }
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("Could not invoke TripRouter.calcRoute(...) with supported overloads.");
-        if (!failures.isEmpty()) {
-            sb.append(" Tried ").append(failures.size()).append(" overload(s).");
-        }
-        throw new RuntimeException(sb.toString());
-    }
 }
+   

@@ -29,6 +29,15 @@ public interface IVectorDB {
      * @return List of retrieved documents
      */
     List<RetrievedDocument> query(String prompt, int topK);
+    
+    /**
+     * Queries the vector store using semantic similarity.
+     *
+     * @param prompt The natural language query
+     * @param topK   Maximum number of relevant results to return
+     * @return List of retrieved documents
+     */
+    List<RetrievedDocument> query(String prompt, int topK, Map<String,String> metaData);
 
     /**
      * Returns the name or ID of the embedding model used.

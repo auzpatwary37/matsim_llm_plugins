@@ -22,6 +22,9 @@ import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.filter.Filter;
+import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
+import dev.langchain4j.store.embedding.filter.logical.And;
 import dev.langchain4j.store.embedding.qdrant.QdrantEmbeddingStore;
 import io.qdrant.client.QdrantClient;
 import io.qdrant.client.QdrantGrpcClient;
@@ -197,6 +200,82 @@ public class VectorDBImplement implements IVectorDB {
         }
     }
 
+    
+    private Filter buildFilter(Map<String, String> metaDataFilter) {
+        if (metaDataFilter == null || metaDataFilter.isEmpty()) {
+            return null;
+        }
+
+        Filter combined = null;
+
+        for (Map.Entry<String, String> entry : metaDataFilter.entrySet()) {
+            Filter condition = new IsEqualTo(entry.getKey(), entry.getValue());
+
+            if (combined == null) {
+                combined = condition; // first condition
+            } else {
+                combined = new And(combined, condition); // chain
+            }
+        }
+
+        return combined;
+    }
+    
+    @Override
+    public List<RetrievedDocument> query(String prompt, int topK, Map<String,String> metaDataFilter) {
+        ensureInitialized();
+
+        if (prompt == null || prompt.isBlank()) {
+            throw new IllegalArgumentException("Query prompt cannot be null or blank");
+        }
+        if (topK <= 0) {
+            throw new IllegalArgumentException("topK must be > 0");
+        }
+
+        try {
+            Embedding queryEmbedding = embeddingModel.embed(prompt).content();
+            List<Filter> conditions = new ArrayList<>();
+            
+            Filter filter = this.buildFilter(metaDataFilter);
+            
+            EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+                    .queryEmbedding(queryEmbedding)
+                    .filter(filter)
+                    .maxResults(topK)
+                    .build();
+
+            List<EmbeddingMatch<TextSegment>> matches = embeddingStore.search(request).matches();
+            List<RetrievedDocument> results = new ArrayList<>();
+
+            for (EmbeddingMatch<TextSegment> match : matches) {
+                String id = match.embeddingId();
+                TextSegment segment = match.embedded();
+
+                Map<String, String> stringMeta = new HashMap<>();
+                if (segment != null && segment.metadata() != null) {
+                    segment.metadata().toMap().forEach((k, v) -> stringMeta.put(k, String.valueOf(v)));
+                }
+
+                RetrievedDocument doc = new RetrievedDocument(
+                        id,
+                        segment != null ? segment.text() : "",
+                        stringMeta
+                );
+
+                // If your RetrievedDocument already supports score, replace this with constructor/setter usage.
+                // Example:
+                // doc.setScore(match.score());
+
+                results.add(doc);
+            }
+
+            return results;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to query Qdrant", e);
+        }
+    }
+    
     @Override
     public String getEmbeddingModelName() {
         return this.config.getEmbeddingModelName();

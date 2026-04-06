@@ -1,8 +1,12 @@
 package chatcommons;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
@@ -27,10 +31,13 @@ import okhttp3.Response;
 public class ChatCompletionClientImpl implements IChatCompletionClient {
 
 	private final LLMConfigGroup config;
+	  // Raw request/response JSONL log
+    private final String rawLogFilePath;
+
 
 	private final OkHttpClient httpClient = new OkHttpClient.Builder()
 			.connectTimeout(30, TimeUnit.SECONDS)
-			.readTimeout(120, TimeUnit.SECONDS)
+			.readTimeout(10, TimeUnit.MINUTES)
 			.writeTimeout(30, TimeUnit.SECONDS)
 			.callTimeout(0, TimeUnit.SECONDS) // or omit this line
 			.build();
@@ -39,6 +46,10 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
 	@Inject
 	public ChatCompletionClientImpl(LLMConfigGroup configGroup) {
 		this.config = configGroup;
+		this.rawLogFilePath = (config.getLogFilePath() != null && !config.getLogFilePath().isBlank())
+                ? config.getLogFilePath()
+                : "llm_raw.jsonl";
+
 	}
 
 	@Override
@@ -46,6 +57,9 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
 		String endpoint = config.getFullLlmUrl();
 		BackendType backend = config.getBackendEnum();
 		history.add(userMessage);
+		
+		long startTime = System.currentTimeMillis();
+        String traceId = UUID.randomUUID().toString();
 
 		// Pick the correct payload builder based on backend
 		IChatCompletionRequest builder = switch (backend) {
@@ -67,9 +81,18 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
 
 		System.out.println(body);
 		System.out.println(request.toString());
-
+		
+		
+		
+		Integer httpStatus = null;
+	    String responseBody = null;
+	    String error = null;
+	    
 		try (Response response = httpClient.newCall(request).execute()) {
-			String responseBody = response.body() != null ? response.body().string() : "(no body)";
+			responseBody  = response.body() != null ? response.body().string() : "(no body)";
+
+			httpStatus = response.code();
+            
 
 			if (!response.isSuccessful()) {
 				throw new IOException("HTTP " + response.code() + " error from OpenAI: " + responseBody);
@@ -88,8 +111,28 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
 			return parsed;
 
 		} catch (IOException e) {
+			error = e.toString();
 			throw new RuntimeException("Failed to call LLM endpoint: " + e.getMessage(), e);
-		}
+		}finally {
+            long durationMs = System.currentTimeMillis() - startTime;
+
+            RawLlmLogEntry logEntry = new RawLlmLogEntry();
+            logEntry.traceId = traceId;
+            logEntry.timestamp = LocalDateTime.now().toString();
+            logEntry.backend = backend.name();
+            logEntry.endpoint = endpoint;
+            logEntry.modelName = config.getModelName();
+            logEntry.temperature = config.getTemperature();
+            logEntry.maxTokens = config.getMaxTokens();
+            logEntry.thinkingEnabled = userMessage.ifEnableThinking();
+            logEntry.httpStatus = httpStatus;
+            logEntry.durationMs = durationMs;
+            logEntry.requestBody = body;
+            logEntry.responseBody = responseBody;
+            logEntry.error = error;
+
+            appendJsonLine(rawLogFilePath, logEntry);
+        }
 
 	}
 
@@ -97,6 +140,36 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
 	public LLMConfigGroup getLLMConfig() {
 		return config;
 	}
+	
+	private void appendJsonLine(String filePath, Object obj) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath, true))) {
+            writer.write(gson.toJson(obj));
+            writer.newLine();
+        } catch (IOException e) {
+            System.err.println("Failed to write LLM log to " + filePath + ": " + e.getMessage());
+        }
+    }
 
+    private static class RawLlmLogEntry {
+        String traceId;
+        String timestamp;
+
+        String backend;
+        String endpoint;
+        String modelName;
+
+        Double temperature;
+        Integer maxTokens;
+        Boolean thinkingEnabled;
+
+        Integer httpStatus;
+        Long durationMs;
+
+        String requestBody;
+        String responseBody;
+        String error;
+    }
 }
+
+
 

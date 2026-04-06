@@ -250,7 +250,7 @@ public class RouterToolTest {
             }
             """;
 
-        IToolResponse<Plan> response = tool.call(toolJson, "call_json", null);
+        IToolResponse<Plan> response = tool.call(toolJson, "call_json", null, context);
 
         assertNotNull(response);
         assertEquals("call_json", response.getToolCallId());
@@ -277,7 +277,7 @@ public class RouterToolTest {
             }
             """;
 
-        IToolResponse<Plan> response = tool.call(badJson, "call_bad", null);
+        IToolResponse<Plan> response = tool.call(badJson, "call_bad", null, context);
 
         assertNotNull(response);
         assertEquals("call_bad", response.getToolCallId());

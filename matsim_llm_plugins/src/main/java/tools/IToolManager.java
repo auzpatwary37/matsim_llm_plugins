@@ -34,7 +34,7 @@ public interface IToolManager {
      * @param call The tool call (name and arguments) received from the LLM with access to the vector database to insert new documents. 
      * @return The tool's typed response (always returned, dummy tools included)
      */
-    <T> IToolResponse<T> runToolCall(IToolCall call, IVectorDB vectorDB);
+    <T> IToolResponse<T> runToolCall(IToolCall call, IVectorDB vectorDB, Map<String, Object> context);
 
     /**
      * Executes a batch of tool calls and returns all responses.
@@ -43,7 +43,7 @@ public interface IToolManager {
      * @param calls The list of tool calls to run with access to the vector database to insert new documents
      * @return All tool responses (dummy and non-dummy included)
      */
-    List<IToolResponse<?>> runToolCalls(List<IToolCall> calls, IVectorDB vectorDB);
+    List<IToolResponse<?>> runToolCalls(List<IToolCall> calls, IVectorDB vectorDB, Map<String,Object> context);
 
     /**
      * Builds a single tool role message containing all non-dummy tool responses.
@@ -54,7 +54,7 @@ public interface IToolManager {
      * @param calls The list of tool calls to execute
      * @return A single IRequestMessage with role = "tool", or null if no responses should be sent
      */
-    IRequestMessage buildToolResponseMessage(List<IToolCall> calls, IVectorDB vectorDB);
+    IRequestMessage buildToolResponseMessage(List<IToolCall> calls, IVectorDB vectorDB, Map<String,Object> context);
     
     
     Map<String,Boolean> getIfToolDummy();

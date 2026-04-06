@@ -77,7 +77,7 @@ public interface ITool<T>{
      * Parses incoming tool_call arguments into DTOs and then base objects, then delegates to callTool.
      * Allows the tool to add document to the vectorDB. 
      */
-    default IToolResponse<T> call(String argumentsJson, String toolCallId, IVectorDB vectorDB) {
+    default IToolResponse<T> call(String argumentsJson, String toolCallId, IVectorDB vectorDB, Map<String, Object> context) {
         Gson gson = new Gson();
         Map<String, Object> baseObjects = new HashMap<>();
         ErrorMessages em = new ErrorMessages();

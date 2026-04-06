@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.population.Person;
 
 import chatrequest.IRequestMessage;
 import chatresponse.IResponseMessage;
@@ -12,7 +13,23 @@ import tools.IToolResponse;
 public interface IChatManager {
 	
 	
+	/**
+	 * 
+	 * @return the id of the chatmanager thread.
+	 */
 	Id<IChatManager> getId();
+	
+	/**
+	 * 
+	 * @return the personId associated to this manager if there is anyS
+	 */
+	Id<Person> getPersonId();
+	
+	/**
+	 * 
+	 * @param person associate the thread with a person. 
+	 */
+	void setPersonId(Id<Person> person);
 
     /**
      * External entry point from MATSim.
@@ -63,5 +80,8 @@ public interface IChatManager {
      * Clears both the history and the system message.
      */
     void clear();
+    
+    Map<String, Object> getContextObject();
+    void setContextObject(Map<String,Object> context);
 
 }

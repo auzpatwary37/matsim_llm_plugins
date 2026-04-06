@@ -9,26 +9,36 @@ import java.util.Map;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.Plan;
 import org.matsim.core.controler.events.BeforeMobsimEvent;
 import org.matsim.core.controler.events.IterationEndsEvent;
 import org.matsim.core.controler.events.IterationStartsEvent;
+import org.matsim.core.controler.events.ShutdownEvent;
 import org.matsim.core.controler.events.StartupEvent;
 import org.matsim.core.controler.listener.BeforeMobsimListener;
 import org.matsim.core.controler.listener.IterationEndsListener;
 import org.matsim.core.controler.listener.IterationStartsListener;
+import org.matsim.core.controler.listener.ShutdownListener;
 import org.matsim.core.controler.listener.StartupListener;
 import org.matsim.core.gbl.MatsimRandom;
+import org.matsim.core.router.TripRouter;
 
+import com.google.gson.Gson;
 import com.google.inject.Inject;
 
 import chatcommons.ChatManagerContainer;
 import chatcommons.DefaultChatManager;
 import chatcommons.IChatCompletionClient;
 import chatcommons.IChatManager;
+import chatcommons.Role;
+import chatrequest.SimpleRequestMessage;
+import jakarta.inject.Provider;
+import matsimdtobjects.PlanDTO;
+import prompts.IndividualPrompt;
 import rag.IVectorDB;
 import tools.IToolManager;
 
-public class LLMControllerListener implements StartupListener, IterationEndsListener, IterationStartsListener,BeforeMobsimListener{
+public class LLMControllerListener implements StartupListener, IterationEndsListener, IterationStartsListener,BeforeMobsimListener, ShutdownListener{
 
 	@Inject
 	private LLMConfigGroup llmConfig;
@@ -48,6 +58,11 @@ public class LLMControllerListener implements StartupListener, IterationEndsList
 	@Inject
 	private IToolManager toolManager;
 	
+	@Inject
+	private Provider<TripRouter> tripRouterProvider;
+	
+	private Gson gson = new Gson();
+	
 	private int numberOfLLMAgent = 10;
 
 	
@@ -65,7 +80,18 @@ public class LLMControllerListener implements StartupListener, IterationEndsList
 	
 	@Override
 	public void notifyBeforeMobsim(BeforeMobsimEvent event) {
-		// TODO Auto-generated method stub
+		//Lets try sending a query and check if the tool calling and Rag is working as expected. 
+		
+		this.chatContainer.getAll().entrySet().forEach(chat->{
+			Person person = (Person) chat.getValue().getContextObject().get("person");
+			Plan plan = person.getSelectedPlan();
+			String basePlan = PlanDTO.toDTOFromBaseObject().apply(plan).toJsonObject(this.gson).toString();
+			System.out.println("Sending querry for person Id "+ person.getId());
+			chat.getValue().submit(new SimpleRequestMessage(
+			        Role.USER,
+			        IndividualPrompt.planExtractPrompt+"\n"+basePlan
+			    ));
+		});
 		
 	}
 
@@ -83,6 +109,8 @@ public class LLMControllerListener implements StartupListener, IterationEndsList
 
 	@Override
 	public void notifyStartup(StartupEvent event) {
+		this.contextObject.put("tripRoutersProvider", this.tripRouterProvider);
+		this.contextObject.put("activityFacilities", scenario.getActivityFacilities());
 		double prob = ((double)numberOfLLMAgent)/this.scenario.getPopulation().getPersons().size();
 		this.scenario.getPopulation().getPersons().entrySet().forEach(p->{
 			if(MatsimRandom.getLocalInstance().nextDouble()<prob) {
@@ -93,7 +121,10 @@ public class LLMControllerListener implements StartupListener, IterationEndsList
 				metaData.put("type", "attribute");
 				this.vectorDB.insert(context,metaData);
 				IChatManager chatManager = new DefaultChatManager(Id.create(p.getKey().toString(), IChatManager.class), chatClient, toolManager, vectorDB);
-				chatManager.setSystemMessage("You are an AI agent simulated inside MATSim. There is no human present and your handshake is purely automated inside MATSim runtime. So always answer using the available tools.");
+				chatManager.setSystemMessage(IndividualPrompt.systemPrompt + " You are person "+ p.getKey().toString());
+				chatManager.setPersonId(p.getKey());
+				chatManager.setContextObject(new HashMap<>(this.contextObject));
+				chatManager.getContextObject().put("person",p.getValue());
 				this.chatContainer.add(chatManager);
 			}
 		});
@@ -226,6 +257,13 @@ public class LLMControllerListener implements StartupListener, IterationEndsList
 	    public String toString() {
 	        return ragText;
 	    }
+	}
+
+
+	@Override
+	public void notifyShutdown(ShutdownEvent event) {
+		this.vectorDB.clearDynamicDocuments();
+		this.vectorDB.clearStaticDocuments();
 	}
 
 }

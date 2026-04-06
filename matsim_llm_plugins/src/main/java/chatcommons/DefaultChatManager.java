@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.population.Person;
 
 import chatrequest.IRequestMessage;
 import chatrequest.SimpleRequestMessage;
@@ -26,6 +27,8 @@ public class DefaultChatManager implements IChatManager {
     private final IToolManager toolManager;
     private final IVectorDB vectorDB; // Direct ChromaDB client
     private final Id<IChatManager> id;
+    private Map<String,Object> context = new HashMap<>();
+    private Id<Person> personId;
 
     private final List<IChatMessage> history = new ArrayList<>();
 
@@ -34,6 +37,24 @@ public class DefaultChatManager implements IChatManager {
     	this.llmClient = llmClient;
         this.toolManager = toolManager;
         this.vectorDB = vectorDB;
+    }
+    
+    private Map<String, String> buildMetadataFilter() {
+        Map<String, String> filter = new HashMap<>();
+
+        if (this.personId != null) {
+            filter.put("personId", this.personId.toString());
+        }
+
+//        // Optional: add more filters if you stored them
+//        if (this.context != null) {
+//            Object iteration = context.get("iteration");
+//            if (iteration != null) {
+//                filter.put("iteration", iteration.toString());
+//            }
+//        }
+
+        return filter;
     }
 
     @Override
@@ -53,7 +74,7 @@ public class DefaultChatManager implements IChatManager {
             boolean ifNonDummy = false;
             for (var call : response.getToolCalls()) {
                 try {
-                    IToolResponse<?> toolResult = toolManager.runToolCall(call, this.vectorDB);
+                    IToolResponse<?> toolResult = toolManager.runToolCall(call, this.vectorDB, this.context);
                     newResponses.add(toolResult);
                     toolResponses.put(call.getId(), toolResult);
                     if(toolResult.isForLLM()) {
@@ -82,10 +103,10 @@ public class DefaultChatManager implements IChatManager {
     @Override
     public IResponseMessage submitInternal(IRequestMessage message) {
         IRequestMessage enrichedMessage = message;
-
+        Map<String, String> metaDataFilter = this.buildMetadataFilter();
         // Inject context only for the initial USER message
         if (vectorDB != null && message.getRole() == Role.USER && message.getContent() != null && !message.getContent().isBlank()) {
-            List<RetrievedDocument> docs = vectorDB.query(message.getContent(), 3);
+            List<RetrievedDocument> docs = vectorDB.query(message.getContent(), 3, metaDataFilter);
 
             if (!docs.isEmpty()) {
                 StringBuilder contextBlock = new StringBuilder("[Retrieved Context]\n");
@@ -148,6 +169,28 @@ public class DefaultChatManager implements IChatManager {
 	public Id<IChatManager> getId() {
 		// TODO Auto-generated method stub
 		return this.id;
+	}
+
+	@Override
+	public Map<String, Object> getContextObject() {
+		// TODO Auto-generated method stub
+		return this.context;
+	}
+
+	@Override
+	public void setContextObject(Map<String, Object> context) {
+		this.context = context;
+	}
+
+	@Override
+	public Id<Person> getPersonId() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setPersonId(Id<Person> person) {
+		this.personId = person;
 	}
 }
 
