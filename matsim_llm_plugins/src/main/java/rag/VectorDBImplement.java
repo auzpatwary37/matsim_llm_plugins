@@ -3,6 +3,7 @@ package rag;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,6 +15,8 @@ import java.util.Set;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.http.client.jdk.JdkHttpClient;
+import dev.langchain4j.http.client.jdk.JdkHttpClientBuilder;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
@@ -49,6 +52,8 @@ public class VectorDBImplement implements IVectorDB {
         this.config = config;
         this.initialize();
     }
+    
+    
 
     @Override
     public synchronized void initialize() {
@@ -61,12 +66,21 @@ public class VectorDBImplement implements IVectorDB {
 
         try {
             String embeddingBaseUrl = normalizeEmbeddingBaseUrl(config.getFullEmbeddingUrl());
+            
+            HttpClient.Builder httpClientBuilder = HttpClient.newBuilder()
+                    .version(HttpClient.Version.HTTP_1_1);
+
+            JdkHttpClientBuilder jdkHttpClientBuilder = JdkHttpClient.builder()
+                    .httpClientBuilder(httpClientBuilder);
 
             this.embeddingModel = OpenAiEmbeddingModel.builder()
                     .baseUrl(embeddingBaseUrl)
                     .apiKey(config.getAuthorization() != null ? config.getAuthorization() : "lm-studio")
                     .modelName(config.getEmbeddingModelName())
+                    .httpClientBuilder(jdkHttpClientBuilder)
                     .build();
+            
+            embeddingModel.embed("asdfa");
 
             ensureCollectionExists();
 
@@ -93,10 +107,13 @@ public class VectorDBImplement implements IVectorDB {
             throw new RuntimeException("Failed to initialize VectorDBImplement", e);
         }
     }
+    public static String createUUID() { return java.util.UUID.randomUUID().toString(); }
 
     @Override
-    public void insert(String id, String content, Map<String, String> metadata) {
+    public String insert(String content, Map<String, String> metadata) {
         ensureInitialized();
+        
+        String id = createUUID();
 
         if (id == null || id.isBlank()) {
             throw new IllegalArgumentException("Document id cannot be null or blank");
@@ -126,6 +143,7 @@ public class VectorDBImplement implements IVectorDB {
         } catch (Exception e) {
             throw new RuntimeException("Failed to insert document into Qdrant: " + id, e);
         }
+        return id;
     }
 
     @Override
@@ -257,7 +275,7 @@ public class VectorDBImplement implements IVectorDB {
                     continue;
                 }
 
-                String id = buildStaticId(file.getName(), i);
+                String id = createUUID();
                 Metadata metadata = new Metadata(Map.of(
                         "source", "static",
                         "file", file.getName(),
@@ -318,7 +336,7 @@ public class VectorDBImplement implements IVectorDB {
                             .setDistance(Distance.Cosine)
                             .setSize(inferredDimension)
                             .build()
-            ).get();
+            );
 
             System.out.println("Created Qdrant collection: " + collectionName
                     + " with dimension: " + inferredDimension);

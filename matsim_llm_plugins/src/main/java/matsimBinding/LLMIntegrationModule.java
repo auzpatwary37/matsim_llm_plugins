@@ -1,10 +1,11 @@
 package matsimBinding;
 
-import javax.inject.Inject;
+
 
 import org.matsim.core.config.Config;
 import org.matsim.core.controler.AbstractModule;
 
+import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 
@@ -15,6 +16,8 @@ import rag.IVectorDB;
 import rag.VectorDBImplement;
 import tools.DefaultToolManager;
 import tools.IToolManager;
+import tools.Implement.ExtractPlanTool;
+import tools.Implement.RouterTool;
 
 public class LLMIntegrationModule extends AbstractModule {
 
@@ -33,11 +36,15 @@ public class LLMIntegrationModule extends AbstractModule {
     public void install() {
         // These are pre-created so tools can be registered before controler.run()
         bind(IToolManager.class).toInstance(toolManager);
+        toolManager.registerTool(new ExtractPlanTool());
+        toolManager.registerTool(new RouterTool());
         bind(ChatManagerContainer.class).toInstance(container);
 
         // These are config-based and created at runtime by Guice
         bind(IVectorDB.class).toProvider(VectorDbProvider.class).in(Singleton.class);
         bind(IChatCompletionClient.class).toProvider(ChatClientProvider.class).in(Singleton.class);
+        this.addEventHandlerBinding().to(AgentExperienceEventHandler.class).asEagerSingleton();
+        this.addControlerListenerBinding().to(LLMControllerListener.class).asEagerSingleton();
     }
 }
 

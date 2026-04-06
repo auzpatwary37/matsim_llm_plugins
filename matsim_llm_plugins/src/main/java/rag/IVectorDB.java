@@ -15,11 +15,11 @@ public interface IVectorDB {
     /**
      * Inserts a new text entry into the vector database.
      *
-     * @param id       Unique identifier for the entry
+     * @return id       Unique identifier for the entry
      * @param content  Raw text to embed and store
      * @param metadata Optional metadata for filtering or retrieval context
      */
-    void insert(String id, String content, Map<String, String> metadata);
+    String insert(String content, Map<String, String> metadata);
 
     /**
      * Queries the vector store using semantic similarity.

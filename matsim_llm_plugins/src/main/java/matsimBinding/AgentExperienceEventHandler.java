@@ -10,8 +10,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import javax.inject.Inject;
-
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.events.LinkEnterEvent;
@@ -32,6 +30,8 @@ import org.matsim.api.core.v01.events.handler.VehicleEntersTrafficEventHandler;
 import org.matsim.api.core.v01.events.handler.VehicleLeavesTrafficEventHandler;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.population.Person;
+
+import com.google.inject.Inject;
 
 import rag.IVectorDB;
 
@@ -132,7 +132,7 @@ public class AgentExperienceEventHandler implements
         metadata.put("day", String.valueOf(currentIteration));
         metadata.put("source", "experience_handler");
 
-        insertAndTrack(personId, memoryId, text, metadata);
+        insertAndTrack(personId, text, metadata);
 
         activeTrips.remove(personId);
     }
@@ -173,7 +173,7 @@ public class AgentExperienceEventHandler implements
             metadata.put("day", String.valueOf(currentIteration));
             metadata.put("source", "experience_handler");
 
-            insertAndTrack(personId, memoryId, text, metadata);
+            insertAndTrack(personId, text, metadata);
         }
     }
 
@@ -277,7 +277,7 @@ public class AgentExperienceEventHandler implements
         metadata.put("day", String.valueOf(currentIteration));
         metadata.put("source", "experience_handler");
 
-        insertAndTrack(personId, memoryId, text, metadata);
+        insertAndTrack(personId, text, metadata);
     }
 
     @Override
@@ -359,13 +359,13 @@ public class AgentExperienceEventHandler implements
         }
 
         String memoryId = "person_profile_" + sanitize(personId.toString());
-        insertAndTrack(personId, memoryId, text.toString(), metadata);
+        insertAndTrack(personId, text.toString(), metadata);
 
         insertedPersonProfiles.add(personId);
     }
 
-    private void insertAndTrack(Id<Person> personId, String id, String content, Map<String, String> metadata) {
-        vectorDb.insert(id, content, metadata);
+    private void insertAndTrack(Id<Person> personId, String content, Map<String, String> metadata) {
+        String id = vectorDb.insert(content, metadata);
         insertedMemoryIdsByPerson.computeIfAbsent(personId, k -> new HashSet<>()).add(id);
     }
 
