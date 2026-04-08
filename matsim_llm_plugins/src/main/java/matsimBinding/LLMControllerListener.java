@@ -10,6 +10,7 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
+import org.matsim.core.config.Config;
 import org.matsim.core.controler.events.BeforeMobsimEvent;
 import org.matsim.core.controler.events.IterationEndsEvent;
 import org.matsim.core.controler.events.IterationStartsEvent;
@@ -25,6 +26,7 @@ import org.matsim.core.router.TripRouter;
 
 import com.google.gson.Gson;
 import com.google.inject.Inject;
+import com.google.inject.Provider;
 
 import chatcommons.ChatManagerContainer;
 import chatcommons.DefaultChatManager;
@@ -32,16 +34,17 @@ import chatcommons.IChatCompletionClient;
 import chatcommons.IChatManager;
 import chatcommons.Role;
 import chatrequest.SimpleRequestMessage;
-import jakarta.inject.Provider;
 import matsimdtobjects.PlanDTO;
 import prompts.IndividualPrompt;
 import rag.IVectorDB;
 import tools.IToolManager;
+import tools.IToolResponse;
+import tools.Implement.ExtractPlanTool;
 
 public class LLMControllerListener implements StartupListener, IterationEndsListener, IterationStartsListener,BeforeMobsimListener, ShutdownListener{
 
 	@Inject
-	private LLMConfigGroup llmConfig;
+	private Config config;
 	
 	@Inject
 	private Scenario scenario;
@@ -87,10 +90,20 @@ public class LLMControllerListener implements StartupListener, IterationEndsList
 			Plan plan = person.getSelectedPlan();
 			String basePlan = PlanDTO.toDTOFromBaseObject().apply(plan).toJsonObject(this.gson).toString();
 			System.out.println("Sending querry for person Id "+ person.getId());
-			chat.getValue().submit(new SimpleRequestMessage(
+			Map<String, IToolResponse<?>> output = chat.getValue().submit(new SimpleRequestMessage(
 			        Role.USER,
 			        IndividualPrompt.planExtractPrompt+"\n"+basePlan
 			    ));
+			Plan outPlan = null;
+			
+			for(IToolResponse<?> response:output.values()) {
+				if(response.getName().equals(ExtractPlanTool.Name)) {
+					outPlan = (Plan) response.getToolCallOutputContainer();
+				}
+			}
+			
+			
+			
 		});
 		
 	}
@@ -237,8 +250,8 @@ public class LLMControllerListener implements StartupListener, IterationEndsList
 	/* ================= DTO ================= */
 
 	public static class ExtractedPersonContext {
-	    private final Map<String, String> structured;
-	    private final String ragText;
+	    final Map<String, String> structured;
+	    final String ragText;
 
 	    public ExtractedPersonContext(Map<String, String> structured, String ragText) {
 	        this.structured = structured;

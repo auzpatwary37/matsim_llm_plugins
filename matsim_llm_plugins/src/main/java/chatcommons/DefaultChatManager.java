@@ -185,7 +185,7 @@ public class DefaultChatManager implements IChatManager {
 	@Override
 	public Id<Person> getPersonId() {
 		// TODO Auto-generated method stub
-		return null;
+		return this.personId;
 	}
 
 	@Override

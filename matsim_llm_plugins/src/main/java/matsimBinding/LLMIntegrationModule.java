@@ -4,6 +4,7 @@ package matsimBinding;
 
 import org.matsim.core.config.Config;
 import org.matsim.core.controler.AbstractModule;
+import org.matsim.core.mobsim.qsim.AbstractQSimModule;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
@@ -20,6 +21,18 @@ import tools.Implement.ExtractPlanTool;
 import tools.Implement.RouterTool;
 
 public class LLMIntegrationModule extends AbstractModule {
+	
+	ConnectionType type = ConnectionType.replanning;
+	
+	public static enum ConnectionType{
+		replanning, 
+		withinday,
+		controllerlistener
+	}
+	
+	public LLMIntegrationModule(ConnectionType type) {
+		this.type = type;
+	}
 
     private final DefaultToolManager toolManager = new DefaultToolManager();
     private final ChatManagerContainer container = new ChatManagerContainer();
@@ -39,12 +52,35 @@ public class LLMIntegrationModule extends AbstractModule {
         toolManager.registerTool(new ExtractPlanTool());
         toolManager.registerTool(new RouterTool());
         bind(ChatManagerContainer.class).toInstance(container);
-
+        
+        
+        
         // These are config-based and created at runtime by Guice
         bind(IVectorDB.class).toProvider(VectorDbProvider.class).in(Singleton.class);
         bind(IChatCompletionClient.class).toProvider(ChatClientProvider.class).in(Singleton.class);
         this.addEventHandlerBinding().to(AgentExperienceEventHandler.class).asEagerSingleton();
-        this.addControlerListenerBinding().to(LLMControllerListener.class).asEagerSingleton();
+        if(this.type.equals(ConnectionType.controllerlistener)) {
+        	this.addControlerListenerBinding().to(LLMControllerListener.class).asEagerSingleton();
+        }
+        
+        if(this.type.equals(ConnectionType.replanning)) {
+	        this.addPlanStrategyBinding(LLMReplanningStrategyModule.StrategyName).toProvider(LLMReplanningStrategyProvider.class);
+	        bind(LLMReplanningStrategyModule.class).asEagerSingleton();
+	        this.addControlerListenerBinding().to(LLMReplanningStrategyModule.class).asEagerSingleton();
+        }
+        if(this.type.equals(ConnectionType.withinday)) {
+	        this.addControlerListenerBinding().to(LLMWithinDayListener.class).asEagerSingleton();
+	        
+	        installQSimModule(new AbstractQSimModule() {
+	
+				@Override
+				protected void configureQSim() {
+					bind(LLMWithinDayListener.class).asEagerSingleton();
+	                addMobsimListenerBinding().to(LLMWithinDayListener.class);
+				}
+	        	
+	        });
+        }
     }
 }
 

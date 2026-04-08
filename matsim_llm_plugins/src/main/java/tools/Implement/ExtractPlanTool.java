@@ -20,6 +20,8 @@ import tools.ToolArgumentDTO;
 import tools.VerificationFailedException;
 
 public class ExtractPlanTool implements ITool<Plan> {
+	
+	public static final String Name = "extract_plan";
 
     private final Map<String, ToolArgument<?, ? extends ToolArgumentDTO<?>>> arguments = new HashMap<>();
     private Map<String, Object> context = new HashMap<>();
@@ -37,7 +39,7 @@ public class ExtractPlanTool implements ITool<Plan> {
 
     @Override
     public String getName() {
-        return "extract_plan";
+        return Name;
     }
 
     @Override

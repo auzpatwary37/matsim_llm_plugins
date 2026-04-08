@@ -42,7 +42,7 @@ public class VectorDBTest {
 		configMain.addModule(config);
 		Scenario scn= ScenarioUtils.loadScenario(configMain);
 		Controler controller = new Controler(scn);
-		controller.addOverridingModule(new LLMIntegrationModule());
+		controller.addOverridingModule(new LLMIntegrationModule(LLMIntegrationModule.ConnectionType.controllerlistener));
 		controller.run();
 		
 	}
