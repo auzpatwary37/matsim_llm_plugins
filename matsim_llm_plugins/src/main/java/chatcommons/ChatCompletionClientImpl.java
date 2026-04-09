@@ -65,7 +65,7 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
 		IChatCompletionRequest builder = switch (backend) {
 		case OPENAI -> new OpenAiChatRequest();
 		case LM_STUDIO -> new LmStudioChatRequest();
-		case OLLAMA -> throw new IllegalArgumentException("Ollama backend is not implemented yet!!! Use either openai or Lm");
+		case OLLAMA -> new OpenAiChatRequest();
 		};
 
 		String body = builder.serializeToHttpBody(
@@ -101,7 +101,7 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
 			IChatCompletionResponse parsed = switch (backend) {
 			case OPENAI -> gson.fromJson(responseBody, OpenAiChatResponse.class);
 			case LM_STUDIO -> gson.fromJson(responseBody, LmStudioChatResponse.class);
-			case OLLAMA -> throw new IllegalArgumentException("Ollama backend is not implemented yet!!! Use either openai or Lm");
+			case OLLAMA -> gson.fromJson(responseBody, OpenAiChatResponse.class);
 			};
 
 			if (parsed != null) {

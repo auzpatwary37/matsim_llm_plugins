@@ -64,6 +64,7 @@ import org.matsim.vehicles.VehicleCapacity;
 
 import matsimBinding.LLMConfigGroup;
 import matsimBinding.LLMIntegrationModule;
+import matsimBinding.LLMReplanningStrategyModule;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
@@ -231,6 +232,19 @@ public final class Run implements Callable<Integer> {
     config.removeModule("swissRailRaptor");
     config.addModule(this.buildLLMConfig());
     config.removeModule("ptCounts");
+    
+    LLMIntegrationModule.ConnectionType connectionType = null;
+    if(this.llmConnectionType.equals("replanning")) {
+    	connectionType = LLMIntegrationModule.ConnectionType.replanning;
+    }else if(this.llmConnectionType.equals("controllerlistener")) {
+    	connectionType = LLMIntegrationModule.ConnectionType.controllerlistener;
+    }else {
+    	connectionType = LLMIntegrationModule.ConnectionType.withinday;
+    }
+    
+    if(connectionType.equals(LLMIntegrationModule.ConnectionType.replanning)) {
+    	addStrategy(config, LLMReplanningStrategyModule.StrategyName,null,0.03,(int)(this.maxIterations*.8));
+    }
     Scenario scenario = ScenarioUtils.loadScenario(config);
     removeNonExistantLanes(scenario.getNetwork(),scenario.getLanes());
     increaseLaneCapacity(scenario.getLanes(), 5600);
@@ -353,14 +367,7 @@ public final class Run implements Callable<Integer> {
 //		}
 //		
 //	});
-    LLMIntegrationModule.ConnectionType connectionType = null;
-    if(this.llmConnectionType.equals("replanning")) {
-    	connectionType = LLMIntegrationModule.ConnectionType.replanning;
-    }else if(this.llmConnectionType.equals("controllerlistener")) {
-    	connectionType = LLMIntegrationModule.ConnectionType.controllerlistener;
-    }else {
-    	connectionType = LLMIntegrationModule.ConnectionType.withinday;
-    }
+    
     
     controler.addOverridingModule(new LLMIntegrationModule(connectionType));
     controler.run();
