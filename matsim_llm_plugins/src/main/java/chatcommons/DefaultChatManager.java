@@ -73,19 +73,14 @@ public class DefaultChatManager implements IChatManager {
             List<IToolResponse<?>> newResponses = new ArrayList<>();
             boolean ifNonDummy = false;
             for (var call : response.getToolCalls()) {
-                try {
-                    IToolResponse<?> toolResult = toolManager.runToolCall(call, this.vectorDB, this.context);
-                    newResponses.add(toolResult);
-                    toolResponses.put(call.getId(), toolResult);
-                    if(toolResult.isForLLM()) {
-                    	ifNonDummy = true;
-                    }
-                } catch (Exception ex) {
-//                    IToolResponse<?> errorResponse = toolManager.handleError(call, ex); the error is handled in tool call internally 
-                	// a tool response is gnenerated anyway with the error message instead of the actual response. 
-//                    newResponses.add(errorResponse);
-//                    toolResponses.put(call.getId(), errorResponse);
+                
+                IToolResponse<?> toolResult = toolManager.runToolCall(call, this.vectorDB, this.context);
+                newResponses.add(toolResult);
+                toolResponses.put(call.getId(), toolResult);
+                if(toolResult.isForLLM()) {
+                	ifNonDummy = true;
                 }
+                
             }
 
             IRequestMessage toolMessage = new SimpleRequestMessage(Role.TOOL,"",newResponses,false);

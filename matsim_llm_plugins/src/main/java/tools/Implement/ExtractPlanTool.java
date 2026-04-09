@@ -64,7 +64,7 @@ public class ExtractPlanTool implements ITool<Plan> {
     }
 
     @Override
-    public IToolResponse<Plan> callTool(String id, Map<String, Object> arguments, IVectorDB vectorDB) {
+    public IToolResponse<Plan> callTool(String id, Map<String, Object> arguments, IVectorDB vectorDB, Map<String,Object> contextObject) {
         Plan plan = (Plan) arguments.get("plan");
 
         JsonObject response = new JsonObject();
@@ -111,13 +111,5 @@ public class ExtractPlanTool implements ITool<Plan> {
         }
     }
 
-    @Override
-    public Map<String, Object> getContextObject() {
-        return context;
-    }
 
-    @Override
-    public void setContextObject(Map<String, Object> context) {
-        this.context = context;
-    }
 }

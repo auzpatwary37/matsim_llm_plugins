@@ -236,14 +236,14 @@ public class LLMControllerListener implements StartupListener, IterationEndsList
 
 	    int bucket = Integer.parseInt(value.toString());
 
-	    if (bucket == 16) {
-	        return "80+";
-	    }
+//	    if (bucket == 16) {
+//	        return "80+";
+//	    }
+//
+//	    int lower = bucket * 5;
+//	    int upper = lower + 4;
 
-	    int lower = bucket * 5;
-	    int upper = lower + 4;
-
-	    return lower + "-" + upper;
+	    return Integer.toString(bucket);
 	}
 
 

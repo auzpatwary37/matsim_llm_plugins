@@ -10,7 +10,7 @@ import rag.IVectorDB;
 public class ExampleTool implements ITool<ExampleTool.ExampleOutput> {
 
     private final Map<String, ToolArgument<?, ? extends ToolArgumentDTO<?>>> arguments = new HashMap<>();
-    private Map<String, Object> context = new HashMap<>();
+
     
 
     public ExampleTool() {
@@ -43,7 +43,7 @@ public class ExampleTool implements ITool<ExampleTool.ExampleOutput> {
   
  
 	@Override
-    public IToolResponse<ExampleOutput> callTool(String id, Map<String, Object> inputs, IVectorDB vectorDB) {
+    public IToolResponse<ExampleOutput> callTool(String id, Map<String, Object> inputs, IVectorDB vectorDB, Map<String,Object> context) {
         CustomInput custom = (CustomInput) inputs.get("customInput");
         Person person = (Person) inputs.get("person");
         String message = (String) inputs.get("message");
@@ -124,16 +124,6 @@ public class ExampleTool implements ITool<ExampleTool.ExampleOutput> {
 		return ExampleOutput.class;
 	}
 
-	@Override
-	public Map<String, Object> getContextObject() {
-		// TODO Auto-generated method stub
-		return this.context;
-	}
-
-	@Override
-	public void setContextObject(Map<String, Object> context) {
-		this.context = context;
-	}
 
 	@Override
 	public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context, ErrorMessages em)

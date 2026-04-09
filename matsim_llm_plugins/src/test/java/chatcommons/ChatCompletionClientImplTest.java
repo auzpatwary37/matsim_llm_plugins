@@ -214,7 +214,7 @@ class EchoTool implements ITool<String> {
 
 
 	@Override
-	public IToolResponse<String> callTool(String id, Map<String, Object> arguments, IVectorDB vectorDB) {
+	public IToolResponse<String> callTool(String id, Map<String, Object> arguments, IVectorDB vectorDB, Map<String,Object> context) {
 		
 		String msg = (String) arguments.getOrDefault("message", "");
         boolean shout = Boolean.TRUE.equals(arguments.getOrDefault("shout", ""));
@@ -258,15 +258,6 @@ class EchoTool implements ITool<String> {
 	}
 
 
-	@Override
-	public Map<String, Object> getContextObject() {
-		return null;
-	}
-
-
-	@Override
-	public void setContextObject(Map<String, Object> context) {
-	}
 
 
 	@Override
@@ -315,7 +306,7 @@ class ArithmeticTool implements ITool<Double> {
     }
 
     @Override
-    public IToolResponse<Double> callTool(String id, Map<String, Object> args, IVectorDB vectorDB) {
+    public IToolResponse<Double> callTool(String id, Map<String, Object> args, IVectorDB vectorDB, Map<String, Object> context) {
         double a = toDouble(args.get("a"));
         double b = toDouble(args.get("b"));
         double scale = args.containsKey("scale") ? toDouble(args.get("scale")) : 1.0;
@@ -331,16 +322,7 @@ class ArithmeticTool implements ITool<Double> {
         throw new IllegalArgumentException("Expected numeric input but got: " + obj);
     }
 
-	@Override
-	public Map<String, Object> getContextObject() {
-		
-		return null;
-	}
 
-	@Override
-	public void setContextObject(Map<String, Object> context) {
-		
-	}
 
 	@Override
 	public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context, ErrorMessages em)

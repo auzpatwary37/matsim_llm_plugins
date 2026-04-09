@@ -243,7 +243,7 @@ public final class Run implements Callable<Integer> {
     }
     
     if(connectionType.equals(LLMIntegrationModule.ConnectionType.replanning)) {
-    	addStrategy(config, LLMReplanningStrategyModule.StrategyName,null,0.03,(int)(this.maxIterations*.8));
+    	addStrategy(config, LLMReplanningStrategyModule.StrategyName,null,1.0,(int)(this.maxIterations*.8));
     }
     Scenario scenario = ScenarioUtils.loadScenario(config);
     removeNonExistantLanes(scenario.getNetwork(),scenario.getLanes());

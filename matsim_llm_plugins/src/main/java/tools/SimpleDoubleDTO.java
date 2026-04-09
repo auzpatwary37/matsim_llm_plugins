@@ -36,7 +36,7 @@ public class SimpleDoubleDTO extends ToolArgumentDTO<Double> {
     public static final JsonObject STATIC_SCHEMA;
     static {
         JsonObject valueProp = new JsonObject();
-        valueProp.addProperty("type", "number");
+        valueProp.addProperty("type", "double");
 
         JsonObject props = new JsonObject();
         props.add("value", valueProp);

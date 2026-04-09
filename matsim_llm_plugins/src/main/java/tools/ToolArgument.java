@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.function.Function;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 public class ToolArgument<B, T extends ToolArgumentDTO<B>> {
@@ -33,15 +34,22 @@ public class ToolArgument<B, T extends ToolArgumentDTO<B>> {
 
     public B fromJson(String json, Gson gson, ErrorMessages em) {
         try {
+        	JsonElement element = gson.fromJson(json, com.google.gson.JsonElement.class);
             // First parse into JsonObject once
-            JsonObject obj = gson.fromJson(json, JsonObject.class);
-
+            //JsonObject obj = gson.fromJson(json, JsonObject.class);
+        	JsonObject obj = null;
+        	if (element != null && element.isJsonObject()) {
+                obj = element.getAsJsonObject();
+            } else {
+                // For primitive JSON like "car" or 28322, wrap into {"value": ...}
+                obj = new JsonObject();
+                obj.add("value", element);
+            }
             T dto;
 
             try {
                 // Look for optional static parser
                 Method parser = dtoClass.getMethod("fromJsonObject", JsonObject.class, Gson.class);
-
                 @SuppressWarnings("unchecked")
                 T parsed = (T) parser.invoke(null, obj, gson);
                 dto = parsed;
@@ -55,7 +63,7 @@ public class ToolArgument<B, T extends ToolArgumentDTO<B>> {
                 throw new RuntimeException("Failed to parse DTO: " + dtoClass.getName());
             }
 
-            dto.afterJsonLoad(json, gson);
+            //dto.afterJsonLoad(json, gson);
 
             if (!dto.isVerified(em)) {
                 throw new RuntimeException("DTO verification failed: " + dtoClass.getName());
@@ -70,7 +78,9 @@ public class ToolArgument<B, T extends ToolArgumentDTO<B>> {
             return base;
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse tool argument for DTO " + dtoClass.getName(), e);
+        	
+            em.addErrorMessages("Failed to parse tool argument for  " + json);
+            return null;
         }
     }
 

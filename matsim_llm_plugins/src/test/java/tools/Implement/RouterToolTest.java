@@ -142,7 +142,7 @@ public class RouterToolTest {
         Map<String, Object> context = new HashMap<>();
         context.put("activityFacilities", facilities);
         context.put("tripRouter", new FakeNetworkTripRouter());
-        tool.setContextObject(context);
+
 
         Map<String, Object> args = new HashMap<>();
         args.put("fromFacilityId", "fac_a");
@@ -150,7 +150,7 @@ public class RouterToolTest {
         args.put("mode", "car");
         args.put("departureTimeSeconds", 28800.0);
 
-        IToolResponse<Plan> response = tool.callTool("call_1", args, null);
+        IToolResponse<Plan> response = tool.callTool("call_1", args, null, context);
 
         assertNotNull(response);
         assertEquals("call_1", response.getToolCallId());
@@ -185,7 +185,7 @@ public class RouterToolTest {
         Map<String, Object> context = new HashMap<>();
         context.put("activityFacilities", facilities);
         context.put("tripRouter", new FakePtTripRouter());
-        tool.setContextObject(context);
+       
 
         Map<String, Object> args = new HashMap<>();
         args.put("fromFacilityId", "fac_a");
@@ -193,7 +193,7 @@ public class RouterToolTest {
         args.put("mode", "pt");
         args.put("departureTimeSeconds", 30000.0);
 
-        IToolResponse<Plan> response = tool.callTool("call_pt", args, null);
+        IToolResponse<Plan> response = tool.callTool("call_pt", args, null, context);
 
         assertNotNull(response);
         assertTrue(response.isForLLM());
@@ -239,7 +239,7 @@ public class RouterToolTest {
         Map<String, Object> context = new HashMap<>();
         context.put("activityFacilities", facilities);
         context.put("tripRouter", new FakeNetworkTripRouter());
-        tool.setContextObject(context);
+
 
         String toolJson = """
             {
@@ -267,7 +267,7 @@ public class RouterToolTest {
         Map<String, Object> context = new HashMap<>();
         context.put("activityFacilities", facilities);
         context.put("tripRouter", new FakeNetworkTripRouter());
-        tool.setContextObject(context);
+
 
         String badJson = """
             {

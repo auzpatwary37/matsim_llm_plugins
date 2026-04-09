@@ -93,8 +93,8 @@ public interface ITool<T>{
                 }
             }
             
-            this.verifyArguments(baseObjects, this.getContextObject(),em);
-            return callTool(toolCallId, baseObjects, vectorDB);
+            this.verifyArguments(baseObjects, context,em);
+            return callTool(toolCallId, baseObjects, vectorDB, context);
         } catch (Exception ex) {
             return handleErrorMessage(toolCallId, ex, em);
         }
@@ -117,7 +117,7 @@ public interface ITool<T>{
     /**
      * Executes the tool using fully parsed base-class arguments.
      */
-    IToolResponse<T> callTool(String id, Map<String, Object> arguments, IVectorDB vectorDB);
+    IToolResponse<T> callTool(String id, Map<String, Object> arguments, IVectorDB vectorDB,  Map<String, Object> context);
     
     
     /**
@@ -146,12 +146,8 @@ public interface ITool<T>{
     public void verifyArguments(Map<String,Object> arguments, Map<String,Object> context, ErrorMessages em) throws VerificationFailedException;
 
 
-    Map<String, Object> getContextObject();
-    
     
 
-    void setContextObject(Map<String, Object> context);
-    
     
 }
 

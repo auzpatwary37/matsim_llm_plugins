@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Id;
@@ -19,6 +20,7 @@ import org.matsim.core.replanning.ReplanningContext;
 import org.matsim.core.router.TripRouter;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 
@@ -60,9 +62,9 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 	@Inject
 	private Provider<TripRouter> tripRouterProvider;
 	
-	private Gson gson = new Gson();
+	private Gson gson = new GsonBuilder().setPrettyPrinting().create();
 	
-	private int numberOfLLMAgent = 10;
+	private int numberOfLLMAgent = 100;
 	
 	protected static final Logger log = Logger.getLogger(LLMReplanningStrategyModule.class);
 
@@ -98,7 +100,7 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 			if(chat==null)return;
 			String basePlan = PlanDTO.toDTOFromBaseObject().apply(plan).toJsonObject(this.gson).toString();
 			System.out.println("Sending querry for person Id "+ person.getId());
-			
+			System.out.println(IndividualPrompt.planExtractPrompt+"\n"+basePlan);
 			Map<String, IToolResponse<?>> output = chat.submit(new SimpleRequestMessage(
 			        Role.USER,
 			        IndividualPrompt.planExtractPrompt+"\n"+basePlan
@@ -123,8 +125,19 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 	public void notifyStartup(StartupEvent event) {
 		this.contextObject.put("tripRoutersProvider", this.tripRouterProvider);
 		this.contextObject.put("activityFacilities", scenario.getActivityFacilities());
-		double prob = ((double)numberOfLLMAgent)/this.scenario.getPopulation().getPersons().size();
-		this.scenario.getPopulation().getPersons().entrySet().forEach(p->{
+		int totalRealPerson = 0;
+		for(Entry<Id<Person>, ? extends Person> p:this.scenario.getPopulation().getPersons().entrySet()){
+			if(p.getValue().getSelectedPlan().getPlanElements().size()<=3) {
+				continue;
+			}
+			totalRealPerson++;
+		}
+		double prob = ((double)numberOfLLMAgent)/totalRealPerson;
+		int totalLLMAgent = 0;
+		for(Entry<Id<Person>, ? extends Person> p:this.scenario.getPopulation().getPersons().entrySet()){
+			if(p.getValue().getSelectedPlan().getPlanElements().size()<=3) {
+				continue;
+			}
 			if(MatsimRandom.getLocalInstance().nextDouble()<prob) {
 				this.LLMAgentsId.add(p.getKey());
 				String context = LLMControllerListener.extract(p.getValue()).ragText;
@@ -138,8 +151,10 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 				chatManager.setContextObject(new HashMap<>(this.contextObject));
 				chatManager.getContextObject().put("person",p.getValue());
 				this.chatContainer.add(chatManager);
+				totalLLMAgent++;
 			}
-		});
+		}
+		System.out.println("Total LLM agent = "+ totalLLMAgent);
 	}
 
 }

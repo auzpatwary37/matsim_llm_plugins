@@ -12,13 +12,12 @@ public class IndividualPrompt {
 			+ "\n"
 			+ "2. Think step-by-step:\n"
 			+ "   - Identify the sequence of activities (home, work, etc.)\n"
-			+ "   - For each movement between activities, create a trip using the routing tool\n"
+			+ "   - Try to see car availability if you want to switch modes. Naturally, if you did not bring the car along you cannot have a car trip.\n"
 			+ "   - Assemble all activities and legs into a complete plan\n"
 			+ "\n"
 			+ "3. Be consistent and realistic:\n"
-			+ "   - Respect activity timing (start/end times should be logical)\n"
+			+ "   - Respect activity timing (start/end times should be logical but do not try to deviate too much from the original as the data is from a survey.)\n"
 			+ "   - Maintain continuity (each leg must connect two valid activities)\n"
-			+ "   - Use appropriate modes (car, pt, walk, bike)\n"
 			+ "\n"
 			+ "4. Use available context:\n"
 			+ "   - Consider the person's attributes (e.g., car availability, license, income)\n"
@@ -34,8 +33,11 @@ public class IndividualPrompt {
 			+ "\n";
 	
 	public static final String planExtractPrompt = "The original daily plan of this person is provided to you. "
-			+ "Make necessary changes to it so that it as you see reasonable. "
-			+ "Use the experience the agent has collected over simulation. Call the routing tool if you want to reroute."
+			+ "Make necessary changes to it so that it as you see reasonable. Do not change the schedule too much from the original as the original schedule is from a survey. "
+			+ "Always verify the route as at current simulation iteration as the best route might change. "
+			+ "Call the routing tool to get the best route for current network condition"
+			+ "or if you change the departure time or mode."
+			+ "Use the experience the agent has collected over simulation if it is available. Call the routing tool if you want to reroute."
 			+ "Return a fully reconstructed plan using the plan extraction tool. See the schema for expected fields in the Plan";
 	
 

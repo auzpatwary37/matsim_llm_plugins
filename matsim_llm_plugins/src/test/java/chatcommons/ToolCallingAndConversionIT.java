@@ -175,7 +175,7 @@ class ToolCallingAndConversionIT {
         }
 
         @Override
-        public IToolResponse<String> callTool(String id, Map<String, Object> arguments, IVectorDB vectorDB) {
+        public IToolResponse<String> callTool(String id, Map<String, Object> arguments, IVectorDB vectorDB, Map<String, Object> context) {
             String message = (String) arguments.get("message");
             boolean shout = Boolean.TRUE.equals(arguments.get("shout"));
             String result = shout ? message.toUpperCase() : message;
@@ -190,15 +190,7 @@ class ToolCallingAndConversionIT {
             }
         }
 
-        @Override
-        public Map<String, Object> getContextObject() {
-            return context;
-        }
-
-        @Override
-        public void setContextObject(Map<String, Object> context) {
-            this.context = context;
-        }
+        
     }
 
     private static class FakeChatCompletionClient implements IChatCompletionClient {

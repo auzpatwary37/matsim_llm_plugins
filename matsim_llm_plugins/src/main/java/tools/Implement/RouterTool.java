@@ -37,7 +37,7 @@ import tools.VerificationFailedException;
 public class RouterTool implements ITool<Plan> {
 
     private final Map<String, ToolArgument<?, ? extends ToolArgumentDTO<?>>> arguments = new HashMap<>();
-    private Map<String, Object> context = new HashMap<>();
+
 
     public RouterTool() {
         registerArgument(SimpleStringDTO.forArgument("fromFacilityId"));
@@ -91,6 +91,7 @@ public class RouterTool implements ITool<Plan> {
         required.add("fromFacilityId");
         required.add("toFacilityId");
         required.add("mode");
+        required.add("departureTimeSeconds");
 
         parameters.add("properties", properties);
         parameters.add("required", required);
@@ -100,7 +101,7 @@ public class RouterTool implements ITool<Plan> {
     }
 
     @Override
-    public IToolResponse<Plan> callTool(String id, Map<String, Object> arguments, IVectorDB vectorDB) {
+    public IToolResponse<Plan> callTool(String id, Map<String, Object> arguments, IVectorDB vectorDB, Map<String,Object> contextObject) {
         String fromFacilityId = (String) arguments.get("fromFacilityId");
         String toFacilityId = (String) arguments.get("toFacilityId");
         String mode = (String) arguments.get("mode");
@@ -110,9 +111,9 @@ public class RouterTool implements ITool<Plan> {
             departureTimeSeconds = 0.0;
         }
 
-        ActivityFacilities facilities = getFacilitiesFromContext();
-        Provider<TripRouter> tripRouter = getTripRouterProviderFromContext();
-        Person person = getOptionalPersonFromContext();
+        ActivityFacilities facilities = getFacilitiesFromContext(contextObject);
+        Provider<TripRouter> tripRouter = getTripRouterProviderFromContext(contextObject);
+        Person person = getOptionalPersonFromContext(contextObject);
 
         ActivityFacility fromFacility = facilities.getFacilities().get(
             Id.create(fromFacilityId.trim(), ActivityFacility.class)
@@ -204,9 +205,9 @@ public class RouterTool implements ITool<Plan> {
             if (context == null) {
                 errors.add("Tool context is null.");
             } else {
-                Object tripRouterObj = getContextValue(context, "tripRouter", "router");
+                Object tripRouterObj = getContextValue(context, "tripRoutersProvider");
                 if (tripRouterObj == null) {
-                    errors.add("Context does not contain TripRouter under key 'tripRouter' or 'router'.");
+                    errors.add("Context does not contain TripRouterProvider under key 'tripRouterProvider' or 'router'.");
                 }
 
                 Object facilitiesObj = getContextValue(context, "activityFacilities", "facilities");
@@ -239,18 +240,10 @@ public class RouterTool implements ITool<Plan> {
         }
     }
 
-    @Override
-    public Map<String, Object> getContextObject() {
-        return context;
-    }
+ 
 
-    @Override
-    public void setContextObject(Map<String, Object> context) {
-        this.context = context;
-    }
-
-    private ActivityFacilities getFacilitiesFromContext() {
-        Object obj = getContextValue(this.context, "activityFacilities", "facilities");
+    private ActivityFacilities getFacilitiesFromContext(Map<String,Object> contextObject) {
+        Object obj = getContextValue(contextObject, "activityFacilities", "facilities");
         if (!(obj instanceof ActivityFacilities)) {
             throw new RuntimeException(
                 "RouterTool requires ActivityFacilities in context under key 'activityFacilities' or 'facilities'."
@@ -259,8 +252,8 @@ public class RouterTool implements ITool<Plan> {
         return (ActivityFacilities) obj;
     }
 
-    private Provider<TripRouter> getTripRouterProviderFromContext() {
-    	Provider<TripRouter> obj = (Provider<TripRouter>)getContextValue(this.context, "tripRoutersProvider");
+    private Provider<TripRouter> getTripRouterProviderFromContext(Map<String,Object> contextObject) {
+    	Provider<TripRouter> obj = (Provider<TripRouter>)getContextValue(contextObject, "tripRoutersProvider");
         if (obj == null) {
             throw new RuntimeException(
                 "RouterTool requires TripRouter in context under key 'tripRouter' or 'router'."
@@ -269,8 +262,8 @@ public class RouterTool implements ITool<Plan> {
         return obj;
     }
 
-    private Person getOptionalPersonFromContext() {
-        Object obj = getContextValue(this.context, "person");
+    private Person getOptionalPersonFromContext(Map<String, Object> context) {
+        Object obj = getContextValue(context, "person");
         if (obj instanceof Person) {
             return (Person) obj;
         }

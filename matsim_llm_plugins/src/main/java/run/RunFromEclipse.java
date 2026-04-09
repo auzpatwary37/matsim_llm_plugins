@@ -45,7 +45,8 @@ public class RunFromEclipse {
 		        "--vectorDbPort","6334",
 		        "--vectorDbCollectionName","matsim_llm_run1",
 		        "--vectorDbSourceFile","data/static.txt",
-		        "--cleanVectorDbUponCompletion","ALL"
+		        "--cleanVectorDbUponCompletion","ALL",
+		        "--LLMConnectionOption","replanning"
 				
 		};
 		
