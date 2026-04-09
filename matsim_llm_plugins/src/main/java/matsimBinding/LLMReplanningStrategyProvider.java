@@ -9,6 +9,8 @@ import com.google.inject.Provider;
 
 public class LLMReplanningStrategyProvider implements Provider<PlanStrategy>{
 	
+	
+	@Inject
 	private LLMReplanningStrategyModule module;
 	
 	
