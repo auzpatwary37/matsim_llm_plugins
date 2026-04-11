@@ -103,7 +103,7 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 			System.out.println(IndividualPrompt.planExtractPrompt+"\n"+basePlan);
 			Map<String, IToolResponse<?>> output = chat.submit(new SimpleRequestMessage(
 			        Role.USER,
-			        IndividualPrompt.planExtractPrompt+"\n"+basePlan
+			        IndividualPrompt.chatGPTPlanExtractionPrompt+"\n"+basePlan
 			    ));
 			Plan outPlan = null;
 			for(IToolResponse<?> response: output.values()) {
@@ -146,7 +146,7 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 				metaData.put("type", "attribute");
 				//this.vectorDB.insert(context,metaData);//inserted in agent experience handler
 				IChatManager chatManager = new DefaultChatManager(Id.create(p.getKey().toString(), IChatManager.class), chatClient, toolManager, vectorDB);
-				chatManager.setSystemMessage(IndividualPrompt.systemPrompt + " You are person "+ p.getKey().toString());
+				chatManager.setSystemMessage(IndividualPrompt.chatGPTSystemPrompt+ " You are person "+ p.getKey().toString());
 				chatManager.setPersonId(p.getKey());
 				p.getValue().getAttributes().putAttribute("isAI", true);
 				chatManager.setContextObject(new HashMap<>(this.contextObject));
