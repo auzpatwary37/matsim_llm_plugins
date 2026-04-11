@@ -175,7 +175,7 @@ public class LLMWithinDayListener implements MobsimInitializedListener, StartupL
 				Map<String,String> metaData = new HashMap<>();
 				metaData.put("personId", p.getKey().toString());
 				metaData.put("type", "attribute");
-				this.vectorDB.insert(context,metaData);
+				//this.vectorDB.insert(context,metaData);//handled in Agent Experience handler
 				IChatManager chatManager = new DefaultChatManager(Id.create(p.getKey().toString(), IChatManager.class), chatClient, toolManager, vectorDB);
 				chatManager.setSystemMessage(IndividualPrompt.systemPrompt + " You are person "+ p.getKey().toString());
 				chatManager.setPersonId(p.getKey());

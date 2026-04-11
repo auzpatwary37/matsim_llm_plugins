@@ -1,35 +1,224 @@
 package matsimBinding;
 
 import org.matsim.core.config.ReflectiveConfigGroup;
-
 /**
- * Configuration for connecting MATSim to a Large Language Model (LLM) with optional retrieval-augmented generation (RAG).
- * 
- * This configuration class supports multiple LLM backends and provides comprehensive settings for:
- * - LLM inference (local and remote)
- * - Vector database integration for RAG
- * - Tool calling capabilities
- * - Embedding generation
- * - Authentication and logging
+ * Configuration group for all LLM-related components used in the MATSim–LLM integration.
  *
- * == LLM Setup ==
- * Supported providers:
- *   - Local models via LM Studio or Ollama
- *       > LM Studio: Load a model, enable "OpenAI-compatible API" (default port: 1234)
- *       > Ollama: Run `ollama run llama3` (default port: 11434)
+ * This class centralizes configuration for:
  *
- *   - Remote via OpenAI
- *       > Use host = api.openai.com, protocol = HTTPS (default port 443, no need to set it)
- *       > Set `authorization` and optionally `organization`, `project`
+ * 1. Chat Completion (LLM)
+ *    - Host, port, and API path for OpenAI-compatible endpoints (e.g., LM Studio, OpenAI, Ollama)
+ *    - Model name and authorization settings
  *
- * == Vector DB Setup ==
- * To run Chroma DB locally:
- *   docker run -p 8000:8000 ghcr.io/chroma-core/chroma:latest
- * This exposes:
- *   - http://localhost:8000/search
- *   - http://localhost:8000/insert
+ * 2. Embedding Service
+ *    - Separate endpoint and model for generating vector embeddings
+ *    - Used exclusively for retrieval (RAG), not for generation
  *
- * @author MATSim LLM Integration Team
+ * 3. Vector Database (Qdrant)
+ *    - Connection settings (host, port, collection name)
+ *    - Supports storage and retrieval of both static and dynamic documents
+ *    - Used for similarity search during context injection
+ *
+ * 4. Retrieval Configuration (RAG)
+ *    - Path to static source files for initial vector DB population
+ *    - Controls behavior of dynamic memory insertion and cleanup
+ *
+ * 5. Lifecycle / Cleanup Behavior
+ *    - Defines how the vector database is handled after simulation:
+ *        - No cleanup
+ *        - Clean only dynamic entries
+ *        - Clean both static and dynamic entries
+ *
+ * Notes:
+ * - Chat completion and embedding endpoints may point to the same backend or different services.
+ * - All endpoints are expected to follow OpenAI-compatible API formats.
+ * - This configuration is consumed by ChatCompletionClient, VectorDBImplement (Qdrant),
+ *   and ChatManager during runtime.
+
+ * Central configuration for the MATSim–LLM integration.
+ *
+ * This config connects MATSim to:
+ * - a chat model (LLM)
+ * - an embedding model (for retrieval)
+ * - a Qdrant database (for memory / RAG)
+ *
+ * It also controls optional loading of static reference data and cleanup behavior.
+ *
+ * --------------------------------------------------
+ * Setup (Step-by-Step, Non-Technical)
+ * --------------------------------------------------
+ *
+ * Step 1 — Start a Chat Model (LLM)
+ *
+ * Pick ONE option below:
+ *
+ * --------------------------------------------------
+ * Option A: LM Studio (Recommended)
+ * --------------------------------------------------
+ *
+ * 1. Download and install LM Studio
+ * 2. Open the application
+ * 3. Go to the "Models" tab
+ * 4. Download a model (e.g., Qwen, LLaMA)
+ * 5. Go to the "Local Server" tab
+ * 6. Select the downloaded model
+ * 7. Click "Start Server"
+ *
+ * IMPORTANT:
+ *   Copy the EXACT model name shown in LM Studio.
+ *   You MUST set:
+ *       llmModelName = "<that exact name>"
+ *
+ * You know it is working if:
+ *   → You see: "Server running on http://localhost:1234"
+ *
+ * Use:
+ *   llmHost = "http://localhost"
+ *   llmPort = 1234
+ *   llmPath = "/v1/chat/completions"
+ *
+ *
+ * --------------------------------------------------
+ * Option B: Ollama
+ * --------------------------------------------------
+ *
+ * 1. Install Ollama
+ * 2. Open terminal / command prompt
+ * 3. Run:
+ *        ollama run qwen3.5:9b
+ *    (this downloads the model)
+ *
+ * 4. Then run:
+ *        ollama serve
+ *
+ * IMPORTANT:
+ *   Use the SAME model name:
+ *       llmModelName = "qwen3.5:9b"
+ *
+ * You know it is working if:
+ *   → Terminal shows no errors and stays running
+ *
+ * Use:
+ *   llmHost = "http://localhost"
+ *   llmPort = 11434
+ *   llmPath = "/v1/chat/completions"
+ *
+ *
+ * --------------------------------------------------
+ * Option C: OpenAI
+ * --------------------------------------------------
+ *
+ * 1. Get an API key from OpenAI
+ * 2. Choose a model (e.g., gpt-4o)
+ *
+ * IMPORTANT:
+ *   Set:
+ *       llmModelName = "gpt-4o"
+ *
+ * Use:
+ *   llmHost = "https://api.openai.com"
+ *   llmPath = "/v1/chat/completions"
+ *   authorization = "Bearer YOUR_API_KEY"
+ *
+ *
+ * --------------------------------------------------
+ * Step 2 — Set Up Embeddings
+ * --------------------------------------------------
+ *
+ * This is required for retrieval (RAG).
+ *
+ * Most backends already support embeddings.
+ *
+ * Use:
+ *   embeddingPath = "/v1/embeddings"
+ *
+ * IMPORTANT:
+ *   You MUST also set:
+ *       embeddingModelName
+ *
+ * Example:
+ *   - OpenAI: "text-embedding-3-small"
+ *   - LM Studio: embedding-capable model
+ *   - Ollama: installed embedding model
+ *
+ *
+ * --------------------------------------------------
+ * Step 3 — Start Qdrant (Database)
+ * --------------------------------------------------
+ *
+ * Qdrant stores and retrieves memory (RAG).
+ *
+ * Recommended method (NO terminal required):
+ *
+ * 1. Install Docker Desktop
+ * 2. Open Docker Desktop
+ * 3. Go to the "Images" tab
+ * 4. Search for:
+ *        qdrant/qdrant
+ * 5. Click "Pull"
+ * 6. After download, click "Run"
+ *
+ * 7. In container settings:
+ *      Add port mapping:
+ *          6334 → 6334   (IMPORTANT: gRPC port)
+ *
+ *      (Optional, for browser check):
+ *          6333 → 6333
+ *
+ * 8. Start the container
+ *
+ *
+ * You know it is working if:
+ *
+ *   Option A:
+ *     Docker shows container status = "Running"
+ *
+ *   Option B (optional check):
+ *     Open browser → http://localhost:6333
+ *     → You see JSON response
+ *
+ *
+ * Use:
+ *   vectorDbHost = "localhost"
+ *   vectorDbPort = 6334   // IMPORTANT: gRPC port
+ *   vectorDbCollectionName = "<any name>"
+ *
+ * Notes:
+ *   - Collection will be created automatically if missing
+ *   - Port 6334 is REQUIRED for Java Qdrant client
+ *
+ *
+ * --------------------------------------------------
+ * Step 4 — Optional: Load a File
+ * --------------------------------------------------
+ *
+ * If you want background knowledge:
+ *   vectorDbSourceFile = "path/to/file"
+ *
+ * This file will be:
+ *   read → split → embedded → stored in Qdrant
+ *
+ *
+ * --------------------------------------------------
+ * Quick Check (Very Important)
+ * --------------------------------------------------
+ *
+ * Before running MATSim:
+ *
+ * 1. Open browser:
+ *     http://localhost:1234   (LM Studio)
+ *     http://localhost:6333   (Qdrant)
+ *
+ * 2. If page does NOT open → service is NOT running
+ *
+ *
+ * --------------------------------------------------
+ * Notes
+ * --------------------------------------------------
+ *
+ * - Model name MUST exactly match backend model
+ * - If model name is wrong → requests will fail
+ * - All services must be running BEFORE starting MATSim
  */
 public class LLMConfigGroup extends ReflectiveConfigGroup {
     public static final String GROUP_NAME = "llm";
@@ -127,8 +316,8 @@ public class LLMConfigGroup extends ReflectiveConfigGroup {
     /** Hostname or IP address of the vector database server (default: localhost) */
     private String vectorDbHost = "localhost";
     
-    /** Port number for the vector database server (default: 8000 for ChromaDB) */
-    private int vectorDbPort = 8000;
+    /** Port number for the vector database server (default: 6334 for Qdrant) */
+    private int vectorDbPort = 6334;
     
     /** API endpoint path for searching the vector database */
     private String vectorDbSearchPath = "/search";
@@ -178,6 +367,8 @@ public class LLMConfigGroup extends ReflectiveConfigGroup {
     
     /** File path prefix for LLM chat logs (timestamp will be appended) */
     private String logFilePath = "llm_chat_log";
+    
+    
 
     // ========================================================================
     // BACKEND ENUM DEFINITION
@@ -454,4 +645,6 @@ public class LLMConfigGroup extends ReflectiveConfigGroup {
     public String getFullVectorDbBaseUrl() {
         return String.format("http://%s:%d", vectorDbHost, vectorDbPort);
     }
+    
+
 }

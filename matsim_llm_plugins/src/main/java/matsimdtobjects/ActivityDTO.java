@@ -94,7 +94,7 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
 
 
         if (endTime != null) {
-            if (endTime < 0||endTime>94000) {
+            if (endTime < 0||endTime>100000) {
             	em.addErrorMessages("End time is negative or not in seconds.");
                 outcome = false;
             }

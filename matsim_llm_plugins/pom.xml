@@ -50,7 +50,7 @@
           <manifest>
  				<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                 <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
-            <mainClass>EVPricing.RunEvExample</mainClass>
+            <mainClass>run.Run</mainClass>
 				
           </manifest>
 <manifestEntries>
@@ -147,11 +147,7 @@
 	    <version>5.7.0</version>
 	</dependency>
 
-  <dependency>
-			<groupId>org.matsim</groupId>
-			<artifactId>matsim</artifactId>
-			<version>${matsim.version}</version>
-		</dependency>
+
 		<!--<dependency>
 			<groupId>org.matsim.contrib</groupId>
 			<artifactId>roadpricing</artifactId>
@@ -215,14 +211,6 @@
     <groupId>one.util</groupId>
     <artifactId>streamex</artifactId>
     <version>0.7.3</version>
-</dependency>
-
-
-<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
-<dependency>
-    <groupId>com.google.code.gson</groupId>
-    <artifactId>gson</artifactId>
-    <version>2.10.1</version>
 </dependency>
 
 <dependency>

@@ -29,6 +29,7 @@ public class DefaultChatManager implements IChatManager {
     private final Id<IChatManager> id;
     private Map<String,Object> context = new HashMap<>();
     private Id<Person> personId;
+    private boolean retrievalFlag = true;
 
     private final List<IChatMessage> history = new ArrayList<>();
 
@@ -62,32 +63,49 @@ public class DefaultChatManager implements IChatManager {
 //        history.add(message);
         Map<String, IToolResponse<?>> toolResponses = new HashMap<>();
 
+        int noToolCallRetryCount = 0;
+        final int maxNoToolCallRetries = 3;
+        
         while (true) {
             IResponseMessage response = submitInternal(message);
             history.add(response);
 
             if (response.getToolCalls() == null || response.getToolCalls().isEmpty()) {
-                break;
-            }
+            	noToolCallRetryCount++;
 
-            List<IToolResponse<?>> newResponses = new ArrayList<>();
-            boolean ifNonDummy = false;
-            for (var call : response.getToolCalls()) {
-                
-                IToolResponse<?> toolResult = toolManager.runToolCall(call, this.vectorDB, this.context);
-                newResponses.add(toolResult);
-                toolResponses.put(call.getId(), toolResult);
-                if(toolResult.isForLLM()) {
-                	ifNonDummy = true;
+                if (noToolCallRetryCount >= maxNoToolCallRetries) {
+                    System.out.println("Warning: model failed to produce a valid tool call after "
+                            + maxNoToolCallRetries + " attempts.");
+                    retrievalFlag = true;
+                    break;
                 }
-                
-            }
-
-            IRequestMessage toolMessage = new SimpleRequestMessage(Role.TOOL,"",newResponses,false);
-//            history.add(toolMessage);
-            message = toolMessage;
-            if(!ifNonDummy) {
-            	break;
+                IRequestMessage noToolMessage = new SimpleRequestMessage(Role.USER,"Your previous response was invalid because it did not contain any valid tool call. "
+                		+ "You must respond with a valid tool call only.",null,false);
+                message = noToolMessage;
+                retrievalFlag = false;
+            }else {
+            	noToolCallRetryCount = 0;
+            	retrievalFlag = true;
+	            List<IToolResponse<?>> newResponses = new ArrayList<>();
+	            boolean ifNonDummy = false;
+	            for (var call : response.getToolCalls()) {
+	                
+	                IToolResponse<?> toolResult = toolManager.runToolCall(call, this.vectorDB, this.context);
+	                newResponses.add(toolResult);
+	                toolResponses.put(call.getId(), toolResult);
+	                if(toolResult.isForLLM()) {
+	                	ifNonDummy = true;
+	                }
+	                
+	            }
+	
+	            IRequestMessage toolMessage = new SimpleRequestMessage(Role.TOOL,"",newResponses,false);
+	//            history.add(toolMessage);
+	            message = toolMessage;
+	            
+	            if(!ifNonDummy) {
+	            	break;
+	            }
             }
         }
 
@@ -100,7 +118,7 @@ public class DefaultChatManager implements IChatManager {
         IRequestMessage enrichedMessage = message;
         Map<String, String> metaDataFilter = this.buildMetadataFilter();
         // Inject context only for the initial USER message
-        if (vectorDB != null && message.getRole() == Role.USER && message.getContent() != null && !message.getContent().isBlank()) {
+        if (this.retrievalFlag && vectorDB != null && message.getRole() == Role.USER && message.getContent() != null && !message.getContent().isBlank()) {
             List<RetrievedDocument> docs = vectorDB.query(message.getContent(), 3, metaDataFilter);
 
             if (!docs.isEmpty()) {

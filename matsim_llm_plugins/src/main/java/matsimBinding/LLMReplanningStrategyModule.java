@@ -144,10 +144,11 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 				Map<String,String> metaData = new HashMap<>();
 				metaData.put("personId", p.getKey().toString());
 				metaData.put("type", "attribute");
-				this.vectorDB.insert(context,metaData);
+				//this.vectorDB.insert(context,metaData);//inserted in agent experience handler
 				IChatManager chatManager = new DefaultChatManager(Id.create(p.getKey().toString(), IChatManager.class), chatClient, toolManager, vectorDB);
 				chatManager.setSystemMessage(IndividualPrompt.systemPrompt + " You are person "+ p.getKey().toString());
 				chatManager.setPersonId(p.getKey());
+				p.getValue().getAttributes().putAttribute("isAI", true);
 				chatManager.setContextObject(new HashMap<>(this.contextObject));
 				chatManager.getContextObject().put("person",p.getValue());
 				this.chatContainer.add(chatManager);

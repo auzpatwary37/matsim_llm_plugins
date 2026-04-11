@@ -132,7 +132,7 @@ public class LLMControllerListener implements StartupListener, IterationEndsList
 				Map<String,String> metaData = new HashMap<>();
 				metaData.put("personId", p.getKey().toString());
 				metaData.put("type", "attribute");
-				this.vectorDB.insert(context,metaData);
+				//this.vectorDB.insert(context,metaData);//inserted in Agent Experience Handler
 				IChatManager chatManager = new DefaultChatManager(Id.create(p.getKey().toString(), IChatManager.class), chatClient, toolManager, vectorDB);
 				chatManager.setSystemMessage(IndividualPrompt.systemPrompt + " You are person "+ p.getKey().toString());
 				chatManager.setPersonId(p.getKey());

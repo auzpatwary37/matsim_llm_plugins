@@ -63,6 +63,7 @@ import org.matsim.pt.utils.TransitScheduleValidator.ValidationResult;
 import org.matsim.vehicles.VehicleCapacity;
 
 import matsimBinding.LLMConfigGroup;
+import matsimBinding.LLMConfigGroup.BackendType;
 import matsimBinding.LLMIntegrationModule;
 import matsimBinding.LLMReplanningStrategyModule;
 import picocli.CommandLine;
@@ -165,6 +166,10 @@ public final class Run implements Callable<Integer> {
   
   @Option(names = {"--LLMConnectionOption"}, description = {"Connection Type: replanning/ controllerlistener/ withinday"}, defaultValue = "replanning")
   private String llmConnectionType; 
+  
+  @Option(names = "--backend", description = "openai | lmstudio | ollama", defaultValue = "lmstudio")
+  private String backend;
+  
   
   public static void main(String[] args) {
     (new CommandLine(new Run()))
@@ -388,6 +393,26 @@ public final class Run implements Callable<Integer> {
       config.setCleanVectorDbUponCompletion(this.cleanVectorDbUponCompletion);
       config.setLlmPath(llmPath);
       config.setModelName(llmModelName);
+      config.setBackend(BackendType.LM_STUDIO);
+      config.setMaxTokens(8000);
+      
+      switch (this.backend) {
+
+      case "openai" -> {
+          config.setBackend(LLMConfigGroup.BackendType.OPENAI);
+          config.setUseHttps(true);
+      }
+
+      case "lmstudio" -> {
+          config.setBackend(LLMConfigGroup.BackendType.LM_STUDIO);
+          config.setUseHttps(false);
+      }
+
+      case "ollama" -> {
+          config.setBackend(LLMConfigGroup.BackendType.OLLAMA);
+          config.setUseHttps(false);
+      }
+  }
 
       return config;
   }

@@ -343,11 +343,19 @@ public class AgentExperienceEventHandler implements
             if (e.getValue() == null) {
                 continue;
             }
-            if (AI_ATTRIBUTE.equals(e.getKey())) {
+            if (AI_ATTRIBUTE.equals(e.getKey())||e.getKey().equals("vehicles")) {
                 continue;
             }
             String key = e.getKey();
             String value = String.valueOf(e.getValue());
+            if(key.equals("gender")) {
+            	if(value.equals("1")) {
+            		value = "male";
+            		
+            	}else {
+            		value = "female";
+            	}
+            }
             pieces.add(key + "=" + value);
             metadata.put("attr_" + key, value);
         }
