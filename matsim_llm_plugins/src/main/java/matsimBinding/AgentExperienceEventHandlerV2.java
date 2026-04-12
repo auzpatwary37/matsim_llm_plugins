@@ -29,6 +29,8 @@ import org.matsim.api.core.v01.events.handler.VehicleEntersTrafficEventHandler;
 import org.matsim.api.core.v01.events.handler.VehicleLeavesTrafficEventHandler;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.population.Person;
+import org.matsim.core.config.Config;
+import org.matsim.core.controler.MatsimServices;
 
 import com.google.inject.Inject;
 
@@ -48,6 +50,10 @@ public class AgentExperienceEventHandlerV2 implements
 
     private final Scenario scenario;
     private final IVectorDB vectorDb;
+    
+    private MatsimServices services;
+    
+    private LLMConfigGroup config;
 
     private int currentIteration = 0;
 
@@ -67,9 +73,11 @@ public class AgentExperienceEventHandlerV2 implements
     private final Map<Id<Person>, Set<String>> insertedMemoryIdsByPerson = new HashMap<>();
 
     @Inject
-    public AgentExperienceEventHandlerV2(Scenario scenario, IVectorDB vectorDb) {
+    public AgentExperienceEventHandlerV2(Scenario scenario, IVectorDB vectorDb, Config config, MatsimServices services) {
         this.scenario = scenario;
         this.vectorDb = vectorDb;
+        this.services = services;
+        this.config = (LLMConfigGroup) config.getModules().get(LLMConfigGroup.GROUP_NAME);
     }
 
     @Override
@@ -359,8 +367,10 @@ public class AgentExperienceEventHandlerV2 implements
     }
 
     private void insertAndTrack(Id<Person> personId, String content, Map<String, String> metadata) {
-        String id = vectorDb.insert(content, metadata);
-        insertedMemoryIdsByPerson.computeIfAbsent(personId, k -> new HashSet<>()).add(id);
+    	if(this.services.getIterationNumber()>=this.config.getIterationToStartAIActivity()) {
+	        String id = vectorDb.insert(content, metadata);
+	        insertedMemoryIdsByPerson.computeIfAbsent(personId, k -> new HashSet<>()).add(id);
+    	}
     }
 
     private String buildRouteSignature(TripState trip) {

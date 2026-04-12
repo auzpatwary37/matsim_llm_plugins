@@ -13,7 +13,7 @@ public class RunFromEclipse {
 //		ConfigUtils.loadConfig(null);
 		
 		String[] args1 = new String[] {
-				"--iterations","500",
+				"--iterations","150",
 				"--thread", "8",
 				"--scale", ".01", 
 				"--config", "data/dataForLLM/configMine.xml",
@@ -25,7 +25,7 @@ public class RunFromEclipse {
 				"--household","data/dataForLLM/outputODHouseholds_21_0.01.xml.gz",
 				"--paramfile","src/main/resources/paramReaderTrial1_newData REsult (1).csv",
 				"--clearplan", "true",
-				"--output","output21.01_osm_EOD",
+				"--output","output21.01_osm_10AIAgent",
 				"--vehicles","data/dataForLLM/outputODVehicle_21_0.01.xml.gz",
 				// -------- LLM --------
 		        "--llmHost","localhost",
@@ -46,7 +46,13 @@ public class RunFromEclipse {
 		        "--vectorDbCollectionName","matsim_llm_run1",
 		        "--vectorDbSourceFile","data/static.txt",
 		        "--cleanVectorDbUponCompletion","ALL",
-		        "--LLMConnectionOption","replanning"
+		        "--LLMConnectionOption","replanning",
+		        
+		     // -------- LLM CONTROL --------
+		        "--maxOutputToken","10000",
+		        "--numberOfAIAgent","10",
+		        "--iterationToStartAIAgent","0",
+		        "--maxToolIteration","10",
 				
 		};
 		

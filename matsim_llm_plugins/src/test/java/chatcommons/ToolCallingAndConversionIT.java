@@ -22,6 +22,8 @@ import chatrequest.IRequestMessage;
 import chatrequest.SimpleRequestMessage;
 import chatresponse.IChatCompletionResponse;
 import chatresponse.IResponseMessage;
+import matsimBinding.LLMConfigGroup;
+import matsimBinding.LLMConfigGroup;
 import rag.IVectorDB;
 import tools.DefaultToolManager;
 import tools.DefaultToolResponse;
@@ -116,7 +118,7 @@ class ToolCallingAndConversionIT {
                 Id.create("tool-loop-test", IChatManager.class),
                 fakeClient,
                 toolManager,
-                null);
+                null, new LLMConfigGroup());
         manager.setSystemMessage("You are a test assistant.");
 
         Map<String, IToolResponse<?>> results = manager.submit(

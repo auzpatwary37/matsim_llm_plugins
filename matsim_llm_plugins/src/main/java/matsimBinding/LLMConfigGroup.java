@@ -357,6 +357,8 @@ public class LLMConfigGroup extends ReflectiveConfigGroup {
      * This enables the model to use external tools and APIs during conversations.
      */
     private String toolSpecificationFile;
+    
+    private int maxToolIterations = 10;
 
     // ========================================================================
     // LOGGING CONFIGURATION
@@ -367,6 +369,27 @@ public class LLMConfigGroup extends ReflectiveConfigGroup {
     
     /** File path prefix for LLM chat logs (timestamp will be appended) */
     private String logFilePath = "llm_chat_log";
+    
+
+    // ========================================================================
+    // AI CONTROL CONFIGURATION
+    // ========================================================================
+
+    
+    /**
+     * Number of agents that will use AI-based decision making.
+     * If <= 0, all agents are eligible.
+     * 
+     * 
+     */
+    
+    private int numberOfAIAgents = 100;
+
+    /**
+     * MATSim iteration from which AI behavior should start.
+     * Before this iteration, default behavior is used.
+     */
+    private int iterationToStartAIActivity = 50;
     
     
 
@@ -607,7 +630,40 @@ public class LLMConfigGroup extends ReflectiveConfigGroup {
 
     @StringSetter("logFilePath")
     public void setLogFilePath(String logFilePath) { this.logFilePath = logFilePath; }
+    
+    // ========================================================================
+    // AI CONTROL - GETTERS & SETTERS
+    // ========================================================================
 
+    @StringGetter("numberOfAIAgents")
+    public int getNumberOfAIAgents() {
+    	return numberOfAIAgents;
+    }
+
+    @StringSetter("numberOfAIAgents")
+    public void setNumberOfAIAgents(int numberOfAIAgents) {
+    	this.numberOfAIAgents = numberOfAIAgents;
+    }
+
+    @StringGetter("iterationToStartAIActivity")
+    public int getIterationToStartAIActivity() {
+    	return iterationToStartAIActivity;
+    }
+
+    @StringSetter("iterationToStartAIActivity")
+    public void setIterationToStartAIActivity(int iterationToStartAIActivity) {
+    	this.iterationToStartAIActivity = iterationToStartAIActivity;
+    }
+
+    @StringGetter("maxToolIterations")
+    public int getMaxToolIterations() {
+        return maxToolIterations;
+    }
+
+    @StringSetter("maxToolIterations")
+    public void setMaxToolIterations(int maxToolIterations) {
+        this.maxToolIterations = maxToolIterations;
+    }
     // ========================================================================
     // UTILITY METHODS - URL CONSTRUCTION
     // ========================================================================
@@ -643,8 +699,9 @@ public class LLMConfigGroup extends ReflectiveConfigGroup {
      * @return Base URL for vector database requests
      */
     public String getFullVectorDbBaseUrl() {
-        return String.format("http://%s:%d", vectorDbHost, vectorDbPort);
+    	return String.format("http://%s:%d", vectorDbHost, vectorDbPort);
     }
+
     
 
 }

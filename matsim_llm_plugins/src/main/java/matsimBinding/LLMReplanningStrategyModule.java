@@ -72,7 +72,7 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 
 	private Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-	private int numberOfLLMAgent = 100;
+	private int numberOfLLMAgent = 0;
 
 	protected static final Logger log = Logger.getLogger(LLMReplanningStrategyModule.class);
 
@@ -84,6 +84,8 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 	private Map<String,Object> contextObject = new HashMap<>();
 
 	private BufferedWriter csvWriter = null;
+	
+	private int currentIteration = 0;
 
 	@Inject
 	LLMReplanningStrategyModule(){
@@ -93,6 +95,9 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 	@Override
 	public void prepareReplanning(ReplanningContext replanningContext) {
 		setUpLogger(this.matsimServices,replanningContext.getIteration());
+		this.currentIteration = replanningContext.getIteration();
+		
+		
 	}
 
 	@Override
@@ -133,44 +138,47 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 	}
 
 	private void writeRow(ChatStats stats, Person person, Plan outPlan) {
-		try {
+	    try {
+	        boolean returnedExtractPlan = (outPlan != null);
+	        boolean planApplied = (outPlan != null); // same for now
 
+	        boolean success = stats.success && planApplied;
+	        String failureType = stats.failureType;
 
-			boolean returnedExtractPlan = (outPlan != null);
-			boolean planApplied = (outPlan != null); // same for now
+	        if (!returnedExtractPlan && failureType == null) {
+	            failureType = "EXTRACT_PLAN_MISSING";
+	        }
 
-			boolean success = planApplied;
-			String failureType = stats.failureType;
+	        csvWriter.write(String.join(",",
+	                person.getId().toString(),
+	                String.valueOf(success),
+	                "\"" + (failureType == null ? "" : failureType) + "\"",
+	                String.valueOf(stats.llmRounds),
+	                String.valueOf(stats.totalToolCalls),
+	                String.valueOf(stats.toolParsingFailures),
+	                String.valueOf(stats.toolVerificationFailures),
+	                String.valueOf(stats.toolExecutionFailures),
+	                String.valueOf(stats.noToolCallRetries),
+	                String.valueOf(stats.hitMaxIterations),
+	                String.valueOf(returnedExtractPlan),
+	                String.valueOf(planApplied),
+	                String.valueOf(stats.durationMs)
+	        ));
 
-			if (!returnedExtractPlan) {
-				failureType = "EXTRACT_PLAN_MISSING";
-			}
+	        csvWriter.newLine();
 
-			csvWriter.write(String.join(",",
-					person.getId().toString(),
-					String.valueOf(success),
-					"\"" + (failureType == null ? "" : failureType) + "\"",
-					String.valueOf(stats.llmRounds),
-					String.valueOf(stats.totalToolCalls),
-					String.valueOf(stats.toolParsingFailures),
-					String.valueOf(stats.toolVerificationFailures),
-					String.valueOf(stats.toolExecutionFailures),
-					String.valueOf(stats.noToolCallRetries),
-					String.valueOf(stats.hitMaxIterations),
-					String.valueOf(returnedExtractPlan),
-					String.valueOf(planApplied),
-					String.valueOf(stats.durationMs)
-					));
-
-			csvWriter.newLine();
-
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to write CSV row", e);
-		}
+	    } catch (Exception e) {
+	        throw new RuntimeException("Failed to write CSV row", e);
+	    }
 	}
 
 	@Override
 	public void finishReplanning() {
+		
+		if(this.currentIteration<this.llmConfig.getIterationToStartAIActivity()) {
+			this.planToReplan.clear();
+			return;
+		}
 
 		this.planToReplan.forEach(plan->{
 			Person person = plan.getPerson();
@@ -195,6 +203,15 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 			}
 			if (outPlan == null) {
 				log.warn("No extracted plan returned for person " + person.getId());
+				
+				try {
+					if (csvWriter != null) {
+						csvWriter.flush();
+						csvWriter.close();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 				return;
 			}
 			PopulationUtils.copyFromTo(outPlan, plan);
@@ -215,6 +232,12 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 
 	@Override
 	public void notifyStartup(StartupEvent event) {
+		int aiAgents = this.llmConfig.getNumberOfAIAgents();
+		if(aiAgents<0) {
+			this.numberOfLLMAgent = this.scenario.getPopulation().getPersons().size();
+		}else {
+			this.numberOfLLMAgent = aiAgents;
+		}
 		this.contextObject.put("tripRoutersProvider", this.tripRouterProvider);
 		this.contextObject.put("activityFacilities", scenario.getActivityFacilities());
 		int totalRealPerson = 0;
@@ -237,7 +260,7 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 				metaData.put("personId", p.getKey().toString());
 				metaData.put("type", "attribute");
 				//this.vectorDB.insert(context,metaData);//inserted in agent experience handler
-				IChatManager chatManager = new DefaultChatManager(Id.create(p.getKey().toString(), IChatManager.class), chatClient, toolManager, vectorDB);
+				IChatManager chatManager = new DefaultChatManager(Id.create(p.getKey().toString(), IChatManager.class), chatClient, toolManager, vectorDB, this.llmConfig);
 				chatManager.setSystemMessage(IndividualPrompt.chatGPTSystemPrompt+ " You are person "+ p.getKey().toString());
 				chatManager.setPersonId(p.getKey());
 				p.getValue().getAttributes().putAttribute("isAI", true);

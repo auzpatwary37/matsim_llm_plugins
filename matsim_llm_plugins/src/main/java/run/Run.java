@@ -170,6 +170,18 @@ public final class Run implements Callable<Integer> {
   @Option(names = "--backend", description = "openai | lmstudio | ollama", defaultValue = "lmstudio")
   private String backend;
   
+  @Option(names = {"--maxOutputToken"}, description = {"Maximum LLM output tokens"}, defaultValue = "10000")
+  private int maxOutputToken;
+
+  @Option(names = {"--numberOfAIAgent"}, description = {"Number of agents to be controlled by AI (-1 means all eligible agents)"}, defaultValue = "100")
+  private int numberOfAIAgent;
+
+  @Option(names = {"--iterationToStartAIAgent"}, description = {"MATSim iteration from which AI agent activity starts"}, defaultValue = "0")
+  private int iterationToStartAIAgent;
+  
+  @Option(names = {"--maxToolIteration"}, description = {"Maximum number of tool-calling iterations per request"}, defaultValue = "10")
+  private int maxToolIteration;
+  
   
   public static void main(String[] args) {
     (new CommandLine(new Run()))
@@ -394,7 +406,10 @@ public final class Run implements Callable<Integer> {
       config.setLlmPath(llmPath);
       config.setModelName(llmModelName);
       config.setBackend(BackendType.LM_STUDIO);
-      config.setMaxTokens(10000);
+      config.setMaxTokens(this.maxOutputToken);
+      config.setIterationToStartAIActivity(this.iterationToStartAIAgent);
+      config.setNumberOfAIAgents(numberOfAIAgent);
+      config.setMaxToolIterations(maxToolIteration);
       
       switch (this.backend) {
 

@@ -66,6 +66,8 @@ public class LLMControllerListener implements StartupListener, IterationEndsList
 	@Inject
 	private Provider<TripRouter> tripRouterProvider;
 	
+	private LLMConfigGroup llmConfig;
+	
 	private Gson gson = new Gson();
 	
 	private int numberOfLLMAgent = 10;
@@ -125,6 +127,13 @@ public class LLMControllerListener implements StartupListener, IterationEndsList
 
 	@Override
 	public void notifyStartup(StartupEvent event) {
+		this.llmConfig = (LLMConfigGroup)this.config.getModules().get(LLMConfigGroup.GROUP_NAME);
+		int aiAgents = this.llmConfig.getNumberOfAIAgents();
+		if(aiAgents<0) {
+			this.numberOfLLMAgent = this.scenario.getPopulation().getPersons().size();
+		}else {
+			this.numberOfLLMAgent = aiAgents;
+		}
 		this.contextObject.put("tripRoutersProvider", this.tripRouterProvider);
 		this.contextObject.put("activityFacilities", scenario.getActivityFacilities());
 		double prob = ((double)numberOfLLMAgent)/this.scenario.getPopulation().getPersons().size();
@@ -136,7 +145,9 @@ public class LLMControllerListener implements StartupListener, IterationEndsList
 				metaData.put("personId", p.getKey().toString());
 				metaData.put("type", "attribute");
 				//this.vectorDB.insert(context,metaData);//inserted in Agent Experience Handler
-				IChatManager chatManager = new DefaultChatManager(Id.create(p.getKey().toString(), IChatManager.class), chatClient, toolManager, vectorDB);
+				IChatManager chatManager = new DefaultChatManager(Id.create(p.getKey().toString(), IChatManager.class), chatClient, toolManager, vectorDB, 
+						(LLMConfigGroup)this.config.getModules().get(LLMConfigGroup.GROUP_NAME)
+						);
 				chatManager.setSystemMessage(IndividualPrompt.systemPrompt + " You are person "+ p.getKey().toString());
 				chatManager.setPersonId(p.getKey());
 				chatManager.setContextObject(new HashMap<>(this.contextObject));

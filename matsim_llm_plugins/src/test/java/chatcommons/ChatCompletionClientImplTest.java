@@ -74,7 +74,7 @@ class ChatCompletionClientImplTest {
     	this.config = llmConfig;
     
     	
-    	IChatCompletionClient chatClient = new ChatCompletionClientImpl(llmConfig);
+    	IChatCompletionClient chatClient = new ChatCompletionClientImpl(llmConfig,null);
     	this.client = chatClient;
     	IRequestMessage systemMessage = new SimpleRequestMessage(Role.SYSTEM, "You are a helpful AI assistant integrated inside MATSim. Say Hi to MATSim if you are live!!! There is not human involved and you are talking directly to MATSim. So always respond with tool calls. \no_think");
     	ArrayList<IChatMessage> history = new ArrayList<IChatMessage>();
@@ -89,7 +89,7 @@ class ChatCompletionClientImplTest {
     	setupToolmanager(config);
     	
     	
-    	this.chatManager = new DefaultChatManager(Id.create("openai",IChatManager.class), this.client, tools, vectorDB);
+    	this.chatManager = new DefaultChatManager(Id.create("openai",IChatManager.class), this.client, tools, vectorDB, this.config);
     	
     	this.chatManager.setSystemMessage(systemMessage.getContent());
     	
@@ -116,7 +116,7 @@ class ChatCompletionClientImplTest {
     	this.config = llmConfig;
     
     	
-    	IChatCompletionClient chatClient = new ChatCompletionClientImpl(llmConfig);
+    	IChatCompletionClient chatClient = new ChatCompletionClientImpl(llmConfig,null);
     	this.client = chatClient;
     	IRequestMessage systemMessage = new SimpleRequestMessage(Role.SYSTEM, "You are a helpful AI assistant integrated inside MATSim. Say Hi to MATSim if you are live!!! There is not human involved and you are talking directly to MATSim. So always respond with tool calls. \no_think");
     	ArrayList<IChatMessage> history = new ArrayList<IChatMessage>();
@@ -131,7 +131,7 @@ class ChatCompletionClientImplTest {
     	setupToolmanager(config);
     	
     	
-    	this.chatManager = new DefaultChatManager(Id.create("openai",IChatManager.class), this.client, tools, vectorDB);
+    	this.chatManager = new DefaultChatManager(Id.create("openai",IChatManager.class), this.client, tools, vectorDB, this.config);
     	
     	this.chatManager.setSystemMessage(systemMessage.getContent());
     	

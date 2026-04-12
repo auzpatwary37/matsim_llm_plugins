@@ -37,6 +37,8 @@ import com.google.inject.Inject;
 
 import rag.IVectorDB;
 
+
+@Deprecated
 public class AgentExperienceEventHandler implements
         PersonDepartureEventHandler,
         PersonArrivalEventHandler,
@@ -49,6 +51,7 @@ public class AgentExperienceEventHandler implements
         AfterMobsimListener{
 
     private static final String AI_ATTRIBUTE = "isAI";
+    
 
     private final Scenario scenario;
     private final IVectorDB vectorDb;

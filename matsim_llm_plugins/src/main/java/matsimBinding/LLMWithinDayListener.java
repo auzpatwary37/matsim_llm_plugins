@@ -61,6 +61,9 @@ public class LLMWithinDayListener implements MobsimInitializedListener, StartupL
 	@Inject
 	private Provider<TripRouter> tripRouterProvider;
 	
+	@Inject
+	private org.matsim.core.controler.MatsimServices services;
+	
 	private Gson gson = new Gson();
 	
 	private int numberOfLLMAgent = 10;
@@ -168,6 +171,13 @@ public class LLMWithinDayListener implements MobsimInitializedListener, StartupL
 
 	@Override
 	public void notifyStartup(StartupEvent event) {
+		
+		int aiAgents = this.llmConfig.getNumberOfAIAgents();
+		if(aiAgents<0) {
+			this.numberOfLLMAgent = this.scenario.getPopulation().getPersons().size();
+		}else {
+			this.numberOfLLMAgent = aiAgents;
+		}
 		this.contextObject.put("tripRoutersProvider", this.tripRouterProvider);
 		this.contextObject.put("activityFacilities", scenario.getActivityFacilities());
 		double prob = ((double)numberOfLLMAgent)/this.scenario.getPopulation().getPersons().size();
@@ -179,7 +189,7 @@ public class LLMWithinDayListener implements MobsimInitializedListener, StartupL
 				metaData.put("personId", p.getKey().toString());
 				metaData.put("type", "attribute");
 				//this.vectorDB.insert(context,metaData);//handled in Agent Experience handler
-				IChatManager chatManager = new DefaultChatManager(Id.create(p.getKey().toString(), IChatManager.class), chatClient, toolManager, vectorDB);
+				IChatManager chatManager = new DefaultChatManager(Id.create(p.getKey().toString(), IChatManager.class), chatClient, toolManager, vectorDB, this.llmConfig);
 				chatManager.setSystemMessage(IndividualPrompt.systemPrompt + " You are person "+ p.getKey().toString());
 				chatManager.setPersonId(p.getKey());
 				chatManager.setContextObject(new HashMap<>(this.contextObject));

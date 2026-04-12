@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.matsim.core.controler.MatsimServices;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.inject.Inject;
@@ -33,6 +35,8 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
 	private final LLMConfigGroup config;
 	  // Raw request/response JSONL log
     private final String rawLogFilePath;
+    
+    private MatsimServices services;
 
 
 	private final OkHttpClient httpClient = new OkHttpClient.Builder()
@@ -44,11 +48,13 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
 	private final Gson gson = new Gson();
 
 	@Inject
-	public ChatCompletionClientImpl(LLMConfigGroup configGroup) {
+	public ChatCompletionClientImpl(LLMConfigGroup configGroup , MatsimServices services) {
 		this.config = configGroup;
 		this.rawLogFilePath = (config.getLogFilePath() != null && !config.getLogFilePath().isBlank())
                 ? config.getLogFilePath()
                 : "llm_raw.jsonl";
+		
+		this.services = services;
 
 	}
 
@@ -130,11 +136,19 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
             logEntry.requestBody = body;
             logEntry.responseBody = responseBody;
             logEntry.error = error;
-
-            appendJsonLine(rawLogFilePath, logEntry);
+            String filePath = null;
+            if(services!=null) {
+            	filePath = services.getControlerIO().getIterationFilename(services.getIterationNumber(), rawLogFilePath+"_ChatLog.json");
+            }else {
+            	filePath = rawLogFilePath+"_ChatLog.json";
+            }
+            
+            appendJsonLine(filePath, logEntry);
         }
 
 	}
+
+	
 
 	@Override
 	public LLMConfigGroup getLLMConfig() {

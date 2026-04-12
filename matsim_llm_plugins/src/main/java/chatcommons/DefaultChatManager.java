@@ -15,6 +15,7 @@ import chatrequest.IRequestMessage;
 import chatrequest.SimpleRequestMessage;
 import chatresponse.IChatCompletionResponse;
 import chatresponse.IResponseMessage;
+import matsimBinding.LLMConfigGroup;
 import rag.IVectorDB;
 import rag.IVectorDB.RetrievedDocument;
 import tools.IToolManager;
@@ -30,14 +31,17 @@ public class DefaultChatManager implements IChatManager {
     private Map<String,Object> context = new HashMap<>();
     private Id<Person> personId;
     private boolean retrievalFlag = true;
+    
+    private LLMConfigGroup config;
 
     private final List<IChatMessage> history = new ArrayList<>();
 
-    public DefaultChatManager(Id<IChatManager>id , IChatCompletionClient llmClient, IToolManager toolManager, IVectorDB vectorDB) {
+    public DefaultChatManager(Id<IChatManager>id , IChatCompletionClient llmClient, IToolManager toolManager, IVectorDB vectorDB, LLMConfigGroup config) {
         this.id = id;
     	this.llmClient = llmClient;
         this.toolManager = toolManager;
         this.vectorDB = vectorDB;
+        this.config = config;
     }
     
     private Map<String, String> buildMetadataFilter() {
@@ -69,7 +73,7 @@ public class DefaultChatManager implements IChatManager {
         int noToolCallRetryCount = 0;
         final int maxNoToolCallRetries = 3;
 
-        final int maxIteration = 12;
+        final int maxIteration = this.config.getMaxToolIterations();
         int i = 0;
 
         stats.success = false;

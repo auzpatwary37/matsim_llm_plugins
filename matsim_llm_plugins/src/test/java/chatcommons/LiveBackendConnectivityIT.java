@@ -1,5 +1,6 @@
 package chatcommons;
 
+import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -13,6 +14,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.matsim.api.core.v01.Id;
+import org.matsim.core.controler.MatsimServices;
 
 import apikeys.APIKeys;
 import chatrequest.IRequestMessage;
@@ -29,8 +31,9 @@ class LiveBackendConnectivityIT {
         LLMConfigGroup config = lmStudioConfig();
         Assumptions.assumeTrue(isLocalEndpointEnabled(config),
                 "LM Studio endpoint is not reachable on " + config.getFullLlmUrl());
+        
 
-        IChatCompletionClient client = new ChatCompletionClientImpl(config);
+        IChatCompletionClient client = new ChatCompletionClientImpl(config, null);
         IChatCompletionResponse response = handshake(client,false);
 
         assertNotNull(response);
@@ -43,7 +46,7 @@ class LiveBackendConnectivityIT {
                 Id.create("lmstudio-live", IChatManager.class),
                 client,
                 new DefaultToolManager(),
-                null);
+                null,config);
         manager.setSystemMessage("You are paired with MATSim. Reply briefly.");
 
         Map<String, IToolResponse<?>> first = manager.submit(
@@ -67,7 +70,7 @@ class LiveBackendConnectivityIT {
                 "OpenAI API key is not configured.");
 
         LLMConfigGroup config = openAiConfig(apiKey);
-        IChatCompletionClient client = new ChatCompletionClientImpl(config);
+        IChatCompletionClient client = new ChatCompletionClientImpl(config, null);
         IChatCompletionResponse response = handshake(client,true);
 
         assertNotNull(response);
@@ -80,7 +83,7 @@ class LiveBackendConnectivityIT {
                 Id.create("openai-live", IChatManager.class),
                 client,
                 new DefaultToolManager(),
-                null);
+                null,config);
         manager.setSystemMessage("You are paired with MATSim. Reply briefly.");
 
         manager.submit(new SimpleRequestMessage(chatcommons.Role.USER, "Say hello to MATSim."));
@@ -91,25 +94,30 @@ class LiveBackendConnectivityIT {
     }
 
     @Test
-    void ollamaBackend_isCurrentlyNotImplemented_inChatCompletionClient() {
+    void ollamaBackend_shouldWork_withOpenAICompatibleAPI() {
         LLMConfigGroup config = new LLMConfigGroup();
         config.setBackend(LLMConfigGroup.BackendType.OLLAMA);
-        config.setAuthorization("ollama");
+        config.setAuthorization("ollama"); // optional, can be null
         config.setModelName("llama3");
         config.setLlmHost("localhost");
         config.setLlmPort(11434);
         config.setUseHttps(false);
         config.setLlmPath("/v1/chat/completions");
 
-        IChatCompletionClient client = new ChatCompletionClientImpl(config);
+        IChatCompletionClient client = new ChatCompletionClientImpl(config,null);
+
         List<IChatMessage> history = new ArrayList<>();
         IRequestMessage user = new SimpleRequestMessage(chatcommons.Role.USER, "hello");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> client.query(history, user, List.of(), new HashMap<>()));
-        assertTrue(ex.getMessage().contains("Ollama backend is not implemented yet"));
-    }
+        IChatCompletionResponse response =
+                client.query(history, user, List.of(), new HashMap<>());
 
+        assertNotNull(response);
+        assertNotNull(response.getMessage());
+        
+    }
+    
+    
     private static IChatCompletionResponse handshake(IChatCompletionClient client, boolean enableThinking) {
         List<IChatMessage> history = new ArrayList<>();
         history.add(new SimpleRequestMessage(chatcommons.Role.SYSTEM,

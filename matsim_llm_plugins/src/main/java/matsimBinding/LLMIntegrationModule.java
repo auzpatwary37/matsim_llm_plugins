@@ -4,6 +4,7 @@ package matsimBinding;
 
 import org.matsim.core.config.Config;
 import org.matsim.core.controler.AbstractModule;
+import org.matsim.core.controler.MatsimServices;
 import org.matsim.core.mobsim.qsim.AbstractQSimModule;
 
 import com.google.inject.Inject;
@@ -106,10 +107,13 @@ class ChatClientProvider implements Provider<IChatCompletionClient> {
 
     @Inject
     private Config config;
+    
+    @Inject
+    MatsimServices services;
 
     @Override
     public IChatCompletionClient get() {
-        return new ChatCompletionClientImpl((LLMConfigGroup)config.getModules().get(LLMConfigGroup.GROUP_NAME));
+        return new ChatCompletionClientImpl((LLMConfigGroup)config.getModules().get(LLMConfigGroup.GROUP_NAME), services);
     }
 }
 
