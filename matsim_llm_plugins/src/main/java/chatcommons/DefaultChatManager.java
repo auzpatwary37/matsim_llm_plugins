@@ -57,65 +57,176 @@ public class DefaultChatManager implements IChatManager {
 
         return filter;
     }
-
+    
     @Override
-    public Map<String, IToolResponse<?>> submit(IRequestMessage message) {
-//        history.add(message);
+    public ChatResult submit(IRequestMessage message) {
+//            history.add(message);
         Map<String, IToolResponse<?>> toolResponses = new HashMap<>();
+        ChatStats stats = new ChatStats();
+
+        long startTime = System.currentTimeMillis();
 
         int noToolCallRetryCount = 0;
         final int maxNoToolCallRetries = 3;
-        
+
         final int maxIteration = 12;
         int i = 0;
-        
+
+        stats.success = false;
+        stats.failureType = "UNKNOWN";
+
         while (true) {
+            stats.llmRounds++;
+
             IResponseMessage response = submitInternal(message);
             history.add(response);
 
             if (response.getToolCalls() == null || response.getToolCalls().isEmpty()) {
-            	noToolCallRetryCount++;
+                noToolCallRetryCount++;
+                stats.noToolCallRetries = noToolCallRetryCount;
 
                 if (noToolCallRetryCount >= maxNoToolCallRetries) {
                     System.out.println("Warning: model failed to produce a valid tool call after "
                             + maxNoToolCallRetries + " attempts.");
                     retrievalFlag = true;
+
+                    stats.success = false;
+                    stats.failureType = "NO_TOOL_CALL_AFTER_RETRIES";
                     break;
                 }
-                IRequestMessage noToolMessage = new SimpleRequestMessage(Role.USER,"Your previous response was invalid because it did not contain any valid tool call. "
-                		+ "You must respond with a valid tool call only.",null,false);
+
+                IRequestMessage noToolMessage = new SimpleRequestMessage(
+                        Role.USER,
+                        "Your previous response was invalid because it did not contain any valid tool call. "
+                                + "You must respond with a valid tool call only.",
+                        null,
+                        false
+                );
                 message = noToolMessage;
                 retrievalFlag = false;
-            }else {
-            	noToolCallRetryCount = 0;
-            	retrievalFlag = true;
-	            List<IToolResponse<?>> newResponses = new ArrayList<>();
-	            boolean ifNonDummy = false;
-	            for (var call : response.getToolCalls()) {
-	                
-	                IToolResponse<?> toolResult = toolManager.runToolCall(call, this.vectorDB, this.context);
-	                newResponses.add(toolResult);
-	                toolResponses.put(call.getId(), toolResult);
-	                if(toolResult.isForLLM()) {
-	                	ifNonDummy = true;
-	                }
-	                
-	            }
-	
-	            IRequestMessage toolMessage = new SimpleRequestMessage(Role.TOOL,"",newResponses,false);
-	//            history.add(toolMessage);
-	            message = toolMessage;
-	            
-	            if(!ifNonDummy) {
-	            	break;
-	            }
+
+            } else {
+                noToolCallRetryCount = 0;
+                retrievalFlag = true;
+
+                List<IToolResponse<?>> newResponses = new ArrayList<>();
+                boolean ifNonDummy = false;
+
+                for (var call : response.getToolCalls()) {
+                    stats.totalToolCalls++;
+
+                    IToolResponse<?> toolResult = toolManager.runToolCall(call, this.vectorDB, this.context);
+                    newResponses.add(toolResult);
+                    toolResponses.put(call.getId(), toolResult);
+
+                    if (toolResult != null && toolResult.getResponseJson() != null) {
+                        String responseJson = toolResult.getResponseJson().toLowerCase();
+
+                        if (responseJson.contains("\"status\":\"error\"") || responseJson.contains("\"status\": \"error\"")) {
+                            if (responseJson.contains("parse")) {
+                                stats.toolParsingFailures++;
+                            } else if (responseJson.contains("verification")) {
+                                stats.toolVerificationFailures++;
+                            } else {
+                                stats.toolExecutionFailures++;
+                            }
+                        }
+                    }
+
+                    if (toolResult.isForLLM()) {
+                        ifNonDummy = true;
+                    }
+                }
+
+                IRequestMessage toolMessage = new SimpleRequestMessage(Role.TOOL, "", newResponses, false);
+//                history.add(toolMessage);
+                message = toolMessage;
+
+                if (!ifNonDummy) {
+                    stats.success = true;
+                    stats.failureType = "NONE";
+                    break;
+                }
             }
+
             i++;
-            if(i>maxIteration)break;
+            if (i > maxIteration) {
+                stats.hitMaxIterations = true;
+                stats.success = false;
+                stats.failureType = "MAX_ITERATION_REACHED";
+                break;
+            }
         }
 
-        return toolResponses;
+        stats.durationMs = System.currentTimeMillis() - startTime;
+
+        return new ChatResult(toolResponses, stats);
     }
+
+//    @Override
+//    public ChatResult submit(IRequestMessage message) {
+////        history.add(message);
+//    	Map<String, IToolResponse<?>> toolResponses = new HashMap<>();
+//    	ChatStats stats = new ChatStats();
+//
+//    	long startTime = System.currentTimeMillis();
+//
+//    	int noToolCallRetryCount = 0;
+//    	final int maxNoToolCallRetries = 3;
+//
+//    	final int maxIteration = 12;
+//    	int i = 0;
+//
+//    	stats.success = false;
+//    	stats.failureType = "UNKNOWN";
+//        
+//        while (true) {
+//            IResponseMessage response = submitInternal(message);
+//            history.add(response);
+//
+//            if (response.getToolCalls() == null || response.getToolCalls().isEmpty()) {
+//            	noToolCallRetryCount++;
+//
+//                if (noToolCallRetryCount >= maxNoToolCallRetries) {
+//                    System.out.println("Warning: model failed to produce a valid tool call after "
+//                            + maxNoToolCallRetries + " attempts.");
+//                    retrievalFlag = true;
+//                    break;
+//                }
+//                IRequestMessage noToolMessage = new SimpleRequestMessage(Role.USER,"Your previous response was invalid because it did not contain any valid tool call. "
+//                		+ "You must respond with a valid tool call only.",null,false);
+//                message = noToolMessage;
+//                retrievalFlag = false;
+//            }else {
+//            	noToolCallRetryCount = 0;
+//            	retrievalFlag = true;
+//	            List<IToolResponse<?>> newResponses = new ArrayList<>();
+//	            boolean ifNonDummy = false;
+//	            for (var call : response.getToolCalls()) {
+//	                
+//	                IToolResponse<?> toolResult = toolManager.runToolCall(call, this.vectorDB, this.context);
+//	                newResponses.add(toolResult);
+//	                toolResponses.put(call.getId(), toolResult);
+//	                if(toolResult.isForLLM()) {
+//	                	ifNonDummy = true;
+//	                }
+//	                
+//	            }
+//	
+//	            IRequestMessage toolMessage = new SimpleRequestMessage(Role.TOOL,"",newResponses,false);
+//	//            history.add(toolMessage);
+//	            message = toolMessage;
+//	            
+//	            if(!ifNonDummy) {
+//	            	break;
+//	            }
+//            }
+//            i++;
+//            if(i>maxIteration)break;
+//        }
+//
+//        return new ChatResult(toolResponses,stats);
+//    }
 
 
     @Override

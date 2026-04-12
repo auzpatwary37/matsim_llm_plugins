@@ -18,6 +18,7 @@ import rag.VectorDBImplement;
 import tools.DefaultToolManager;
 import tools.IToolManager;
 import tools.Implement.ExtractPlanTool;
+import tools.Implement.PullAdditionalContextTool;
 import tools.Implement.RouterTool;
 
 public class LLMIntegrationModule extends AbstractModule {
@@ -51,6 +52,7 @@ public class LLMIntegrationModule extends AbstractModule {
         bind(IToolManager.class).toInstance(toolManager);
         toolManager.registerTool(new ExtractPlanTool());
         toolManager.registerTool(new RouterTool());
+        toolManager.registerTool(new PullAdditionalContextTool());
         bind(ChatManagerContainer.class).toInstance(container);
         
         

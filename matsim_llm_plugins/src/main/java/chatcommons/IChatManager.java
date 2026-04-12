@@ -39,7 +39,7 @@ public interface IChatManager {
      * @param userMessage The initial user message
      * @return A map of toolCallId to IToolResponse for all executed tools
      */
-    Map<String, IToolResponse<?>> submit(IRequestMessage userMessage);
+    ChatResult submit(IRequestMessage userMessage);
 
     /**
      * Internal step that sends a message to the LLM and returns its assistant reply.

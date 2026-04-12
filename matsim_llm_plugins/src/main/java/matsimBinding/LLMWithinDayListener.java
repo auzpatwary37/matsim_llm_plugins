@@ -26,6 +26,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 
 import chatcommons.ChatManagerContainer;
+import chatcommons.ChatResult;
 import chatcommons.DefaultChatManager;
 import chatcommons.IChatCompletionClient;
 import chatcommons.IChatManager;
@@ -117,12 +118,14 @@ public class LLMWithinDayListener implements MobsimInitializedListener, StartupL
 
             System.out.println("Sending within-day query for person Id " + person.getId());
 
-            Map<String, IToolResponse<?>> toolResponses = chatManager.submit(
+            ChatResult result = chatManager.submit(
                     new SimpleRequestMessage(
                             Role.USER,
                             IndividualPrompt.planExtractPrompt + "\n" + basePlan
                     )
             );
+             
+            Map<String, IToolResponse<?>> toolResponses = result.toolResponses;
 
             Plan extractedPlan = extractReturnedPlan(toolResponses);
             if (extractedPlan == null) {

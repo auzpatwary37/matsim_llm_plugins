@@ -29,11 +29,13 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 
 import chatcommons.ChatManagerContainer;
+import chatcommons.ChatResult;
 import chatcommons.DefaultChatManager;
 import chatcommons.IChatCompletionClient;
 import chatcommons.IChatManager;
 import chatcommons.Role;
 import chatrequest.SimpleRequestMessage;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import matsimdtobjects.PlanDTO;
 import prompts.IndividualPrompt;
 import rag.IVectorDB;
@@ -90,10 +92,11 @@ public class LLMControllerListener implements StartupListener, IterationEndsList
 			Plan plan = person.getSelectedPlan();
 			String basePlan = PlanDTO.toDTOFromBaseObject().apply(plan).toJsonObject(this.gson).toString();
 			System.out.println("Sending querry for person Id "+ person.getId());
-			Map<String, IToolResponse<?>> output = chat.getValue().submit(new SimpleRequestMessage(
+			ChatResult result = chat.getValue().submit(new SimpleRequestMessage(
 			        Role.USER,
 			        IndividualPrompt.planExtractPrompt+"\n"+basePlan
 			    ));
+			Map<String, IToolResponse<?>> output = result.toolResponses;
 			Plan outPlan = null;
 			
 			for(IToolResponse<?> response:output.values()) {
