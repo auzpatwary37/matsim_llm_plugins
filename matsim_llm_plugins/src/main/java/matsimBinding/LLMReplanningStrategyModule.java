@@ -203,15 +203,7 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 			}
 			if (outPlan == null) {
 				log.warn("No extracted plan returned for person " + person.getId());
-				
-				try {
-					if (csvWriter != null) {
-						csvWriter.flush();
-						csvWriter.close();
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+				writeRow(stats, person, null);
 				return;
 			}
 			PopulationUtils.copyFromTo(outPlan, plan);
