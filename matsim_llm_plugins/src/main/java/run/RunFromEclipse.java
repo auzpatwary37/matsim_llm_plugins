@@ -35,7 +35,7 @@ public class RunFromEclipse {
 
 		        // -------- Embedding --------
 		        "--embeddingPath","/v1/embeddings",
-		        "--embeddingModelName","text-embedding-granite-embedding-278m-multilingual",
+		        "--embeddingModelName","text-embedding-nomic-embed-text-v1.5-embedding",
 
 		        // -------- Auth --------
 		        "--authorization","lm-studio",

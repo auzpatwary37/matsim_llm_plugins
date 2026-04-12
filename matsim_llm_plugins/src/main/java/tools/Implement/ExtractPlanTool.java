@@ -86,28 +86,32 @@ public class ExtractPlanTool implements ITool<Plan> {
     public void verifyArguments(Map<String, Object> arguments, Map<String, Object> context, ErrorMessages em)
             throws VerificationFailedException {
 
-        List<String> errors = new ArrayList<>();
-
+        //List<String> errors = new ArrayList<>();
+    	int numError = 0;
         if (arguments == null) {
-            errors.add("Arguments map is null.");
+            em.addErrorMessages("Arguments map is null.");
+            numError++;
         } else {
             Object planObj = arguments.get("plan");
 
             if (planObj == null) {
-                errors.add("Missing required argument: plan.");
+                em.addErrorMessages("Missing required argument: plan.");
+                numError++;
             } else if (!(planObj instanceof Plan)) {
-                errors.add("Argument 'plan' is not a MATSim Plan.");
+                em.addErrorMessages("Argument 'plan' is not a MATSim Plan.");
+                numError++;
             } else {
                 Plan plan = (Plan) planObj;
 
                 if (plan.getPlanElements() == null || plan.getPlanElements().isEmpty()) {
-                    errors.add("The extracted MATSim plan contains no plan elements.");
+                    em.addErrorMessages("The extracted MATSim plan contains no plan elements.");
+                    numError++;
                 }
             }
         }
-        em.getErrorMessages().addAll(errors);
-        if (!errors.isEmpty()) {
-            throw new VerificationFailedException(errors);//should this be thrown or all errors should be collected first? 
+       
+        if (numError!=0) {
+            throw new VerificationFailedException(em.getErrorMessages());//should this be thrown or all errors should be collected first? 
         }
     }
 

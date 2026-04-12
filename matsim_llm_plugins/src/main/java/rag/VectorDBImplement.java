@@ -5,12 +5,13 @@ import java.io.File;
 import java.io.FileReader;
 import java.net.http.HttpClient;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
@@ -19,6 +20,7 @@ import dev.langchain4j.http.client.jdk.JdkHttpClient;
 import dev.langchain4j.http.client.jdk.JdkHttpClientBuilder;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import dev.langchain4j.model.output.Response;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -47,6 +49,7 @@ public class VectorDBImplement implements IVectorDB {
     private final Set<String> dynamicIds = new LinkedHashSet<>();
 
     private volatile boolean initialized = false;
+    
 
     public VectorDBImplement(LLMConfigGroup config) {
         if (config == null) {
@@ -56,7 +59,11 @@ public class VectorDBImplement implements IVectorDB {
         this.initialize();
     }
     
+    private long lastExecutionTime = 0;
     
+    private List<String> pendingIds = new ArrayList<>();
+    private List<TextSegment> pendingTextSegment = new ArrayList<>();
+    private int batchSize = 8;
 
     @Override
     public synchronized void initialize() {
@@ -107,13 +114,13 @@ public class VectorDBImplement implements IVectorDB {
             initialized = true;
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to initialize VectorDBImplement", e);
+            throw new RuntimeException("Failed to initialize VectorDBImplement. Are your servers running? Check both the LLM and RAG servers.", e);
         }
     }
     public static String createUUID() { return java.util.UUID.randomUUID().toString(); }
 
     @Override
-    public String insert(String content, Map<String, String> metadata) {
+    public synchronized String insert(String content, Map<String, String> metadata) {
         ensureInitialized();
         
         String id = createUUID();
@@ -131,13 +138,15 @@ public class VectorDBImplement implements IVectorDB {
                     : new Metadata(new HashMap<>(metadata));
 
             TextSegment segment = TextSegment.from(content, lcMetadata);
-            Embedding embedding = embeddingModel.embed(content).content();
-
-            embeddingStore.addAll(
-                    Collections.singletonList(id),
-                    Collections.singletonList(embedding),
-                    Collections.singletonList(segment)
-            );
+            
+//            Embedding embedding = embeddingModel.embed(content).content();
+            
+            this.pendingIds.add(id);
+            this.pendingTextSegment.add(segment);
+            
+            if(this.pendingIds.size()>=this.batchSize) {	
+            	this.flush();
+            }
 
             if (!id.startsWith("static_")) {
                 dynamicIds.add(id);
@@ -148,10 +157,31 @@ public class VectorDBImplement implements IVectorDB {
         }
         return id;
     }
+    
+    public synchronized void flush() {
+    	
+    	if(this.pendingIds.isEmpty())return;
+    	
+    	 List<String> idsToFlush = new ArrayList<>(this.pendingIds);
+    	 List<TextSegment> segmentsToFlush = new ArrayList<>(this.pendingTextSegment);
+    	
+		Response<List<Embedding>> embeddingResponse = this.embeddingModel.embedAll(segmentsToFlush);
+		
+		this.embeddingStore.addAll(
+				idsToFlush,
+                embeddingResponse.content(),
+                segmentsToFlush
+        );
+        this.lastExecutionTime =  System.currentTimeMillis();
+        this.pendingIds.clear();
+        this.pendingTextSegment.clear();
+        
+    }
 
     @Override
     public List<RetrievedDocument> query(String prompt, int topK) {
         ensureInitialized();
+        this.flush();
 
         if (prompt == null || prompt.isBlank()) {
             throw new IllegalArgumentException("Query prompt cannot be null or blank");
@@ -224,6 +254,7 @@ public class VectorDBImplement implements IVectorDB {
     @Override
     public List<RetrievedDocument> query(String prompt, int topK, Map<String,String> metaDataFilter) {
         ensureInitialized();
+        this.flush();
 
         if (prompt == null || prompt.isBlank()) {
             throw new IllegalArgumentException("Query prompt cannot be null or blank");

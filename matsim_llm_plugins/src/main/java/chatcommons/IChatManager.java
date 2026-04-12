@@ -77,7 +77,7 @@ public interface IChatManager {
     IChatMessage getLastMessage();
 
     /**
-     * Clears both the history and the system message.
+     * Clears both the history .
      */
     void clear();
     

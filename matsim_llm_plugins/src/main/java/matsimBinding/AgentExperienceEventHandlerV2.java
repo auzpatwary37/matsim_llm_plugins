@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.matsim.api.core.v01.Id;
@@ -30,14 +29,12 @@ import org.matsim.api.core.v01.events.handler.VehicleEntersTrafficEventHandler;
 import org.matsim.api.core.v01.events.handler.VehicleLeavesTrafficEventHandler;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.population.Person;
-import org.matsim.core.controler.events.AfterMobsimEvent;
-import org.matsim.core.controler.listener.AfterMobsimListener;
 
 import com.google.inject.Inject;
 
 import rag.IVectorDB;
 
-public class AgentExperienceEventHandler implements
+public class AgentExperienceEventHandlerV2 implements
         PersonDepartureEventHandler,
         PersonArrivalEventHandler,
         PersonEntersVehicleEventHandler,
@@ -45,8 +42,7 @@ public class AgentExperienceEventHandler implements
         VehicleEntersTrafficEventHandler,
         VehicleLeavesTrafficEventHandler,
         LinkEnterEventHandler,
-        LinkLeaveEventHandler,
-        AfterMobsimListener{
+        LinkLeaveEventHandler {
 
     private static final String AI_ATTRIBUTE = "isAI";
 
@@ -69,15 +65,9 @@ public class AgentExperienceEventHandler implements
      */
     private final Set<Id<Person>> insertedPersonProfiles = new HashSet<>();
     private final Map<Id<Person>, Set<String>> insertedMemoryIdsByPerson = new HashMap<>();
-    
-    private final List<PendingMemory> pendingMemories = new ArrayList<>();
-
-//    private void insertAndTrack(Id<Person> personId, String content, Map<String, String> metadata) {
-//        pendingMemories.add(new PendingMemory(personId, content, new HashMap<>(metadata)));
-//    }
 
     @Inject
-    public AgentExperienceEventHandler(Scenario scenario, IVectorDB vectorDb) {
+    public AgentExperienceEventHandlerV2(Scenario scenario, IVectorDB vectorDb) {
         this.scenario = scenario;
         this.vectorDb = vectorDb;
     }
@@ -121,12 +111,7 @@ public class AgentExperienceEventHandler implements
         trip.destinationLinkId = event.getLinkId();
 
         double travelTime = trip.arrivalTime - trip.departureTime;
-
         String routeSignature = buildRouteSignature(trip);
-        String memoryId = "experience_route_" + sanitize(personId.toString()) + "_"
-                + sanitize(trip.mode) + "_"
-                + sanitize(routeSignature) + "_day_" + currentIteration;
-
         String text = buildRouteExperienceText(trip, travelTime);
 
         Map<String, String> metadata = new HashMap<>();
@@ -141,8 +126,15 @@ public class AgentExperienceEventHandler implements
         metadata.put("day", String.valueOf(currentIteration));
         metadata.put("source", "experience_handler");
 
-        insertAndTrack(personId, text, metadata);
+        if (trip.worstCongestionLinkId != null && trip.maxDelaySeconds >= 300.0) {
+            metadata.put("worstCongestionLinkId", trip.worstCongestionLinkId.toString());
+            metadata.put("worstCongestionRatio", String.format(Locale.ROOT, "%.2f", trip.worstCongestionRatio));
+            metadata.put("worstCongestionActualTravelTimeSec", formatSeconds(trip.worstActualTravelTime));
+            metadata.put("worstCongestionFreeFlowTravelTimeSec", formatSeconds(trip.worstFreeFlowTravelTime));
+            metadata.put("maxDelaySec", formatSeconds(trip.maxDelaySeconds));
+        }
 
+        insertAndTrack(personId, text, metadata);
         activeTrips.remove(personId);
     }
 
@@ -166,9 +158,9 @@ public class AgentExperienceEventHandler implements
             double waitStart = activePtWaitStart.remove(personId);
             double waitTime = event.getTime() - waitStart;
 
-            String waitContext = safeId(trip.originLinkId) + "_" + timeBand(trip.departureTime);
-            String memoryId = "experience_pt_wait_" + sanitize(personId.toString()) + "_"
-                    + sanitize(waitContext) + "_day_" + currentIteration + "_" + shortUuid();
+            if (waitTime < 900.0) {
+                return;
+            }
 
             String text = buildPtWaitExperienceText(trip, waitTime);
 
@@ -181,9 +173,8 @@ public class AgentExperienceEventHandler implements
             metadata.put("timeBand", timeBand(trip.departureTime));
             metadata.put("day", String.valueOf(currentIteration));
             metadata.put("source", "experience_handler");
-            if(waitTime>=900) {
-            	insertAndTrack(personId, text, metadata);
-            }
+
+            insertAndTrack(personId, text, metadata);
         }
     }
 
@@ -245,8 +236,7 @@ public class AgentExperienceEventHandler implements
             return;
         }
 
-        Map<Id<org.matsim.vehicles.Vehicle>, Map<Id<Link>, Double>> dummy = vehicleLinkEnterTimes;
-        Map<Id<Link>, Double> enterTimes = dummy.get(event.getVehicleId());
+        Map<Id<Link>, Double> enterTimes = vehicleLinkEnterTimes.get(event.getVehicleId());
         if (enterTimes == null) {
             return;
         }
@@ -264,30 +254,23 @@ public class AgentExperienceEventHandler implements
         double actualTravelTime = event.getTime() - enterTime;
         double freeFlowTravelTime = Math.max(1.0, link.getLength() / Math.max(0.1, link.getFreespeed()));
         double congestionRatio = actualTravelTime / freeFlowTravelTime;
+        double delaySeconds = actualTravelTime - freeFlowTravelTime;
 
-        boolean extraordinary = congestionRatio >= 3.0 || actualTravelTime - freeFlowTravelTime >= 300.0;
+        boolean extraordinary = congestionRatio >= 3.0 || delaySeconds >= 300.0;
         if (!extraordinary) {
             return;
         }
 
-        String memoryId = "experience_link_congestion_" + sanitize(personId.toString()) + "_"
-                + sanitize(link.getId().toString()) + "_day_" + currentIteration + "_" + shortUuid();
+        if (congestionRatio > trip.worstCongestionRatio) {
+            trip.worstCongestionRatio = congestionRatio;
+            trip.worstCongestionLinkId = link.getId();
+            trip.worstActualTravelTime = actualTravelTime;
+            trip.worstFreeFlowTravelTime = freeFlowTravelTime;
+        }
 
-        String text = buildLinkCongestionExperienceText(trip, link, actualTravelTime, freeFlowTravelTime, congestionRatio);
-
-        Map<String, String> metadata = new HashMap<>();
-        metadata.put("personId", personId.toString());
-        metadata.put("experienceType", "link_congestion");
-        metadata.put("mode", trip.mode);
-        metadata.put("linkId", link.getId().toString());
-        metadata.put("actualTravelTimeSec", formatSeconds(actualTravelTime));
-        metadata.put("freeFlowTravelTimeSec", formatSeconds(freeFlowTravelTime));
-        metadata.put("congestionRatio", String.format(Locale.ROOT, "%.2f", congestionRatio));
-        metadata.put("timeBand", timeBand(event.getTime()));
-        metadata.put("day", String.valueOf(currentIteration));
-        metadata.put("source", "experience_handler");
-
-        insertAndTrack(personId, text, metadata);
+        if (delaySeconds > trip.maxDelaySeconds) {
+            trip.maxDelaySeconds = delaySeconds;
+        }
     }
 
     @Override
@@ -299,7 +282,6 @@ public class AgentExperienceEventHandler implements
         vehicleToDriver.clear();
         vehicleLinkEnterTimes.clear();
         transitDrivers.clear();
-        //this.pendingMemories.clear();
     }
 
     public Set<String> getInsertedMemoryIdsForPerson(Id<Person> personId) {
@@ -354,18 +336,13 @@ public class AgentExperienceEventHandler implements
             if (e.getValue() == null) {
                 continue;
             }
-            if (AI_ATTRIBUTE.equals(e.getKey())||e.getKey().equals("vehicles")) {
+            if (AI_ATTRIBUTE.equals(e.getKey()) || e.getKey().equals("vehicles")) {
                 continue;
             }
             String key = e.getKey();
             String value = String.valueOf(e.getValue());
-            if(key.equals("gender")) {
-            	if(value.equals("1")) {
-            		value = "male";
-            		
-            	}else {
-            		value = "female";
-            	}
+            if (key.equals("gender")) {
+                value = value.equals("1") ? "male" : "female";
             }
             pieces.add(key + "=" + value);
             metadata.put("attr_" + key, value);
@@ -377,9 +354,7 @@ public class AgentExperienceEventHandler implements
             text.append("Known attributes: ").append(String.join(", ", pieces)).append(".");
         }
 
-        String memoryId = "person_profile_" + sanitize(personId.toString());
         insertAndTrack(personId, text.toString(), metadata);
-
         insertedPersonProfiles.add(personId);
     }
 
@@ -401,13 +376,26 @@ public class AgentExperienceEventHandler implements
     }
 
     private String buildRouteExperienceText(TripState trip, double travelTime) {
-        return "On day " + currentIteration
+        String text = "On day " + currentIteration
                 + ", the " + trip.mode
                 + " trip from link " + safeId(trip.originLinkId)
                 + " to link " + safeId(trip.destinationLinkId)
                 + " took about " + humanDuration(travelTime)
-                + " during the " + timeBand(trip.departureTime)
-                + ". This was the travel experience for that route on that day.";
+                + " during the " + timeBand(trip.departureTime) + ".";
+
+        if (trip.worstCongestionLinkId != null && trip.maxDelaySeconds >= 300.0) {
+            text += " The worst congestion on this trip was near link "
+                    + trip.worstCongestionLinkId
+                    + ", where traversal took about "
+                    + humanDuration(trip.worstActualTravelTime)
+                    + " compared with a rough free-flow time of "
+                    + humanDuration(trip.worstFreeFlowTravelTime)
+                    + ". The congestion ratio there was about "
+                    + String.format(Locale.ROOT, "%.1f", trip.worstCongestionRatio)
+                    + ".";
+        }
+
+        return text;
     }
 
     private String buildPtWaitExperienceText(TripState trip, double waitTime) {
@@ -418,34 +406,8 @@ public class AgentExperienceEventHandler implements
                 + ". This includes waiting for boarding or transfer at that stage of the trip.";
     }
 
-    private String buildLinkCongestionExperienceText(
-            TripState trip,
-            Link link,
-            double actualTravelTime,
-            double freeFlowTravelTime,
-            double congestionRatio) {
-
-        return "On day " + currentIteration
-                + ", link " + link.getId()
-                + " was heavily congested during a " + trip.mode
-                + " trip. It took about " + humanDuration(actualTravelTime)
-                + " to traverse, compared with a rough free-flow time of "
-                + humanDuration(freeFlowTravelTime)
-                + ". The observed congestion ratio was about "
-                + String.format(Locale.ROOT, "%.1f", congestionRatio)
-                + ".";
-    }
-
     private static String safeId(Id<?> id) {
         return id == null ? "unknown" : id.toString();
-    }
-
-    private static String sanitize(String s) {
-        return s.replaceAll("[^a-zA-Z0-9._-]", "_");
-    }
-
-    private static String shortUuid() {
-        return UUID.randomUUID().toString().substring(0, 8);
     }
 
     private static String formatSeconds(double seconds) {
@@ -466,6 +428,22 @@ public class AgentExperienceEventHandler implements
         return min + " minutes " + sec + " seconds";
     }
 
+    private static class TripState {
+        Id<Person> personId;
+        String mode;
+        double departureTime;
+        double arrivalTime;
+        Id<Link> originLinkId;
+        Id<Link> destinationLinkId;
+        List<Id<Link>> linkSequence = new ArrayList<>();
+
+        Id<Link> worstCongestionLinkId;
+        double worstCongestionRatio = 1.0;
+        double worstActualTravelTime = 0.0;
+        double worstFreeFlowTravelTime = 0.0;
+        double maxDelaySeconds = 0.0;
+    }
+
     private static String timeBand(double timeSec) {
         double hour = (timeSec % 86400.0) / 3600.0;
 
@@ -475,50 +453,4 @@ public class AgentExperienceEventHandler implements
         if (hour >= 19 && hour < 24) return "evening";
         return "early day";
     }
-
-    private static class TripState {
-        Id<Person> personId;
-        String mode;
-        double departureTime;
-        double arrivalTime;
-        Id<Link> originLinkId;
-        Id<Link> destinationLinkId;
-        List<Id<Link>> linkSequence = new ArrayList<>();
-    }
-    
-    private static class PendingMemory {
-        Id<Person> personId;
-        String content;
-        Map<String, String> metadata;
-
-        PendingMemory(Id<Person> personId, String content, Map<String, String> metadata) {
-            this.personId = personId;
-            this.content = content;
-            this.metadata = metadata;
-        }
-    }
-    
-    public void flushPendingMemories() {
-        for (PendingMemory pm : pendingMemories) {
-            String id = vectorDb.insert(pm.content, pm.metadata);
-            insertedMemoryIdsByPerson
-                .computeIfAbsent(pm.personId, k -> new HashSet<>())
-                .add(id);
-
-            try {
-                Thread.sleep(20); // throttle
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-        pendingMemories.clear();
-    }
-
-	@Override
-	public void notifyAfterMobsim(AfterMobsimEvent event) {
-		this.flushPendingMemories();
-	}
-	
-	
-	
 }

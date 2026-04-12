@@ -58,7 +58,9 @@ public class LLMIntegrationModule extends AbstractModule {
         // These are config-based and created at runtime by Guice
         bind(IVectorDB.class).toProvider(VectorDbProvider.class).in(Singleton.class);
         bind(IChatCompletionClient.class).toProvider(ChatClientProvider.class).in(Singleton.class);
-        this.addEventHandlerBinding().to(AgentExperienceEventHandler.class).asEagerSingleton();
+        //this.bind(AgentExperienceEventHandler.class).asEagerSingleton();
+        this.addEventHandlerBinding().to(AgentExperienceEventHandlerV2.class).asEagerSingleton();
+        //this.addControlerListenerBinding().to(AgentExperienceEventHandler.class);
         if(this.type.equals(ConnectionType.controllerlistener)) {
         	this.addControlerListenerBinding().to(LLMControllerListener.class).asEagerSingleton();
         }

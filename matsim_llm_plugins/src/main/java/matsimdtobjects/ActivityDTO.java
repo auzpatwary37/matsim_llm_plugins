@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.population.Activity;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.facilities.ActivityFacility;
@@ -22,6 +23,7 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
     // Tool fields
     public String type;
     public String facilityId;
+    public String linkId;
     public Double endTime; // seconds since midnight
 
     // Optional convenience flag; kept for compatibility, but derived from type
@@ -43,6 +45,10 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
         if (activity.getFacilityId() != null) {
             this.facilityId = activity.getFacilityId().toString();
         }
+        
+        if (activity.getLinkId() != null) {
+            this.linkId = activity.getLinkId().toString();
+        }
 
         if(activity.getEndTime().isDefined())this.endTime = activity.getEndTime().seconds();
 
@@ -58,8 +64,15 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
             return null;
         }
 
-        Id<ActivityFacility> fid = Id.create(facilityId.trim(), ActivityFacility.class);
-        Activity act = PopulationUtils.createActivityFromFacilityId(type.trim(), fid);
+        Activity act;
+
+        if (facilityId != null && !facilityId.trim().isEmpty()) {
+            Id<ActivityFacility> fid = Id.create(facilityId.trim(), ActivityFacility.class);
+            act = PopulationUtils.createActivityFromFacilityId(type.trim(), fid);
+        } else {
+            Id<Link> lid = Id.create(linkId.trim(), Link.class);
+            act = PopulationUtils.createActivityFromLinkId(type.trim(), lid);
+        }
 
         if (endTime != null) {
             act.setEndTime(endTime);
@@ -76,15 +89,26 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
             em.addErrorMessages("elementType is not activity.");
         }
 
-        if (type == null || type.trim().isEmpty()) {
-        	em.addErrorMessages("type is not defined for activity.");
+        if (type != null) {
+            String t = type.trim();
+            if (!t.isEmpty() && !isAllowedType(t)) {
+                em.addErrorMessages("Unknown activity type.");
+                outcome = false;
+            }
+        }
+
+        boolean hasFacility = facilityId != null && !facilityId.trim().isEmpty();
+        boolean hasLink = linkId != null && !linkId.trim().isEmpty();
+
+        if (!hasFacility && !hasLink) {
+            em.addErrorMessages("Either facilityId or linkId must be present for activity type " + type);
             outcome = false;
         }
 
-        if (facilityId == null || facilityId.trim().isEmpty()) {
-        	em.addErrorMessages("Facility id is not present for activity type "+type);
-            outcome = false;
-        }
+//        if (hasFacility && hasLink) {
+//            em.addErrorMessages("Only one of facilityId or linkId should be present for activity type " + type);
+//            outcome = false;
+//        }
 
         String t = type.trim();
         if (!isAllowedType(t)) {
@@ -114,8 +138,9 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
         schema.addProperty("additionalProperties", false);
         schema.addProperty(
                 "description",
-                "MATSim Activity definition (tool argument). Required: elementType, type, facilityId. "
-                        + "Optional: endTime (seconds since midnight). "
+                "MATSim Activity definition (tool argument). Required: elementType, type, and at least one of facilityId or linkId. "
+                        + "If both are present, facilityId is prioritized when reconstructing the MATSim Activity. "
+                        + "Optional: endTime (seconds since midnight)."
         );
 
         JsonObject props = new JsonObject();
@@ -146,8 +171,13 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
 
         JsonObject facProp = new JsonObject();
         facProp.addProperty("type", "string");
-        facProp.addProperty("description", "MATSim facility id where the activity takes place.");
+        facProp.addProperty("description", "MATSim facility id where the activity takes place. Preferred over linkId if both are provided.");
         props.add("facilityId", facProp);
+
+        JsonObject linkProp = new JsonObject();
+        linkProp.addProperty("type", "string");
+        linkProp.addProperty("description", "MATSim link id where the activity takes place. Used when facilityId is absent.");
+        props.add("linkId", linkProp);
 
         JsonObject endProp = new JsonObject();
         endProp.addProperty("type", "number");
@@ -158,22 +188,28 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
         );
         props.add("endTime", endProp);
 
-//        JsonObject interactionProp = new JsonObject();
-//        interactionProp.addProperty("type", "boolean");
-//        interactionProp.addProperty(
-//                "description",
-//                "True if this is an interaction activity (type is 'pt interaction' or 'bike interaction'). "
-//                        + "Optional; if provided it must match the type."
-//        );
-//        props.add("ifInteractionActivity", interactionProp);
-
         schema.add("properties", props);
 
         JsonArray required = new JsonArray();
         required.add("elementType");
         required.add("type");
-        required.add("facilityId");
         schema.add("required", required);
+
+        JsonArray anyOf = new JsonArray();
+
+        JsonObject requireFacility = new JsonObject();
+        JsonArray requireFacilityArr = new JsonArray();
+        requireFacilityArr.add("facilityId");
+        requireFacility.add("required", requireFacilityArr);
+        anyOf.add(requireFacility);
+
+        JsonObject requireLink = new JsonObject();
+        JsonArray requireLinkArr = new JsonArray();
+        requireLinkArr.add("linkId");
+        requireLink.add("required", requireLinkArr);
+        anyOf.add(requireLink);
+
+        schema.add("anyOf", anyOf);
 
         return schema;
     }

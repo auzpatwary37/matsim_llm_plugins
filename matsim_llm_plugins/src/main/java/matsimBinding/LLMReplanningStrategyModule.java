@@ -98,6 +98,7 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 			Person person = plan.getPerson();
 			IChatManager chat = this.chatContainer.getChatManagerForPerson(person.getId());
 			if(chat==null)return;
+			chat.clear();
 			String basePlan = PlanDTO.toDTOFromBaseObject().apply(plan).toJsonObject(this.gson).toString();
 			System.out.println("Sending querry for person Id "+ person.getId());
 			System.out.println(IndividualPrompt.planExtractPrompt+"\n"+basePlan);

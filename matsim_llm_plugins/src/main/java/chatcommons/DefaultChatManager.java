@@ -66,6 +66,9 @@ public class DefaultChatManager implements IChatManager {
         int noToolCallRetryCount = 0;
         final int maxNoToolCallRetries = 3;
         
+        final int maxIteration = 12;
+        int i = 0;
+        
         while (true) {
             IResponseMessage response = submitInternal(message);
             history.add(response);
@@ -107,6 +110,8 @@ public class DefaultChatManager implements IChatManager {
 	            	break;
 	            }
             }
+            i++;
+            if(i>maxIteration)break;
         }
 
         return toolResponses;

@@ -394,7 +394,7 @@ public final class Run implements Callable<Integer> {
       config.setLlmPath(llmPath);
       config.setModelName(llmModelName);
       config.setBackend(BackendType.LM_STUDIO);
-      config.setMaxTokens(8000);
+      config.setMaxTokens(10000);
       
       switch (this.backend) {
 

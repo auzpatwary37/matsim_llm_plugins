@@ -138,7 +138,7 @@ public interface ITool<T>{
             getName(),
             errorJson.toString(), // for logging/LLM tracing if needed
             null,
-            true // always sent to LLM
+            false // always sent to LLM
         );
     }
     
