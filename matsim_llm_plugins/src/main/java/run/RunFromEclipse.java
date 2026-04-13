@@ -25,7 +25,7 @@ public class RunFromEclipse {
 				"--household","data/dataForLLM/outputODHouseholds_21_0.01.xml.gz",
 				"--paramfile","src/main/resources/paramReaderTrial1_newData REsult (1).csv",
 				"--clearplan", "true",
-				"--output","output21.01_osm_10AIAgent",
+				"--output","output21.01_osmBase",
 				"--vehicles","data/dataForLLM/outputODVehicle_21_0.01.xml.gz",
 				// -------- LLM --------
 		        "--llmHost","localhost",
@@ -56,7 +56,50 @@ public class RunFromEclipse {
 				
 		};
 		
-		Run.main(args1);
+		String[] args2 = new String[] {
+				"--iterations","50",
+				"--thread", "8",
+				"--scale", ".01", 
+				"--config", "data\\dataForLLMFromBase\\output_config.xml",
+				"--network", "data\\dataForLLMFromBase\\output_network.xml.gz",
+				"--ts", "data\\dataForLLMFromBase\\output_transitSchedule.xml.gz", 
+				"--tv", "data\\dataForLLMFromBase\\output_transitVehicles.xml.gz",  
+				"--plan", "data\\dataForLLMFromBase\\output_plans.xml.gz",
+				"--facilities", "data\\dataForLLMFromBase\\output_facilities.xml.gz", 
+				"--household","data\\dataForLLMFromBase\\output_households.xml.gz",
+				"--paramfile","src/main/resources/paramReaderTrial1_newData REsult (1).csv",
+				"--clearplan", "false",
+				"--output","output21.01_osm_10AIAgent",
+				"--vehicles","data\\dataForLLMFromBase\\output_vehicles.xml.gz",
+				// -------- LLM --------
+		        "--llmHost","localhost",
+		        "--llmPort","1234",
+		        "--llmPath","/v1/chat/completions",
+		        "--llmModelName","qwen/qwen3.5-9b",   // put model if needed (e.g. qwen)
+
+		        // -------- Embedding --------
+		        "--embeddingPath","/v1/embeddings",
+		        "--embeddingModelName","text-embedding-nomic-embed-text-v1.5-embedding",
+
+		        // -------- Auth --------
+		        "--authorization","lm-studio",
+
+		        // -------- Vector DB --------
+		        "--vectorDbHost","localhost",
+		        "--vectorDbPort","6334",
+		        "--vectorDbCollectionName","matsim_llm_run1",
+		        "--vectorDbSourceFile","data/static.txt",
+		        "--cleanVectorDbUponCompletion","NONE",
+		        "--LLMConnectionOption","replanning",
+		        
+		     // -------- LLM CONTROL --------
+		        "--maxOutputToken","10000",
+		        "--numberOfAIAgent","10",
+		        "--iterationToStartAIAgent","0",
+		        "--maxToolIteration","10",
+		};
+		
+		Run.main(args2);
 		
 		
 	}

@@ -3,3 +3,5 @@ NLP/*
 data/*
 output/*
 src/main/java/apikeys/*
+output*
+*.zip
