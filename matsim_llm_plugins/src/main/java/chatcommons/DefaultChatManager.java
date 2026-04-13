@@ -15,6 +15,7 @@ import chatrequest.IRequestMessage;
 import chatrequest.SimpleRequestMessage;
 import chatresponse.IChatCompletionResponse;
 import chatresponse.IResponseMessage;
+import chatresponse.IUsage;
 import matsimBinding.LLMConfigGroup;
 import rag.IVectorDB;
 import rag.IVectorDB.RetrievedDocument;
@@ -81,8 +82,20 @@ public class DefaultChatManager implements IChatManager {
 
         while (true) {
             stats.llmRounds++;
+            long roundStart = System.currentTimeMillis();
 
-            IResponseMessage response = submitInternal(message);
+            IChatCompletionResponse completionResponse = submitInternal(message);
+
+            long roundDuration = System.currentTimeMillis() - roundStart;
+            stats.durationMs += roundDuration;
+
+            IUsage usage = completionResponse.getUsage();
+            if (usage != null) {
+                stats.promptTokens += usage.getPromptTokens();
+                stats.completionTokens += usage.getCompletionTokens();
+                stats.totalTokens += usage.getTotalTokens();
+            }
+            IResponseMessage response = completionResponse.getMessage();
             history.add(response);
 
             if (response.getToolCalls() == null || response.getToolCalls().isEmpty()) {
@@ -234,7 +247,7 @@ public class DefaultChatManager implements IChatManager {
 
 
     @Override
-    public IResponseMessage submitInternal(IRequestMessage message) {
+    public IChatCompletionResponse submitInternal(IRequestMessage message) {
         IRequestMessage enrichedMessage = message;
         Map<String, String> metaDataFilter = this.buildMetadataFilter();
         // Inject context only for the initial USER message
@@ -255,7 +268,7 @@ public class DefaultChatManager implements IChatManager {
         }
 
         IChatCompletionResponse completion = llmClient.query(history, enrichedMessage, toolManager.getAllToolSchemas(), toolManager.getIfToolDummy());
-        return completion.getMessage();
+        return completion;
     }
 
 

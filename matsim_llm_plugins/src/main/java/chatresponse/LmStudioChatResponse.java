@@ -114,6 +114,14 @@ public class LmStudioChatResponse implements IChatCompletionResponse {
         @SerializedName("total_tokens")
         private int totalTokens;
 
+        @SerializedName("completion_tokens_details")
+        private CompletionTokenDetails completionTokenDetails;
+
+        public static class CompletionTokenDetails {
+            @SerializedName("reasoning_tokens")
+            private int reasoningTokens;
+        }
+
         @Override
         public int getPromptTokens() {
             return promptTokens;
@@ -127,6 +135,11 @@ public class LmStudioChatResponse implements IChatCompletionResponse {
         @Override
         public int getTotalTokens() {
             return totalTokens;
+        }
+
+        @Override
+        public int getReasoningTokens() {
+            return completionTokenDetails != null ? completionTokenDetails.reasoningTokens : 0;
         }
     }
 

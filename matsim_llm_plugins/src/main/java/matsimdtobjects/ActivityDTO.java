@@ -157,15 +157,21 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
         typeProp.addProperty("type", "string");
         typeProp.addProperty("description", "Activity type used in the MATSim plan.");
         JsonArray typeEnum = new JsonArray();
-        typeEnum.add("work");
         typeEnum.add("home");
-        typeEnum.add("shopping");
-        typeEnum.add("leisure");
+        typeEnum.add("work");
         typeEnum.add("education");
-        typeEnum.add("restaurants");
+        typeEnum.add("shop");
+        typeEnum.add("leisure");
+        typeEnum.add("other");
         typeEnum.add("errands");
+
+
+        // interaction / stage activities
         typeEnum.add("pt interaction");
+        typeEnum.add("car interaction");
         typeEnum.add("bike interaction");
+        typeEnum.add("car_passenger interaction");
+
         typeProp.add("enum", typeEnum);
         props.add("type", typeProp);
 
@@ -219,15 +225,20 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
     }
 
     private static boolean isAllowedType(String t) {
-        return "work".equals(t)
-                || "home".equals(t)
-                || "shopping".equals(t)
-                || "leisure".equals(t)
+        return "home".equals(t)
+                || "work".equals(t)
                 || "education".equals(t)
-                || "restaurants".equals(t)
+                || "shop".equals(t)
+                || "leisure".equals(t)
+                || "other".equals(t)
                 || "errands".equals(t)
+
+
+                // stage / interaction activities
                 || "pt interaction".equals(t)
-                || "bike interaction".equals(t);
+                || "car interaction".equals(t)
+                || "bike interaction".equals(t)
+                || "car_passenger interaction".equals(t);
     }
 
     

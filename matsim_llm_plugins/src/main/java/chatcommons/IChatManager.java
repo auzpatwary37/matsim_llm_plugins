@@ -7,8 +7,7 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.population.Person;
 
 import chatrequest.IRequestMessage;
-import chatresponse.IResponseMessage;
-import tools.IToolResponse;
+import chatresponse.IChatCompletionResponse;
 
 public interface IChatManager {
 	
@@ -48,7 +47,7 @@ public interface IChatManager {
      * @param message The request message (typically role=tool)
      * @return The assistant’s next message
      */
-    IResponseMessage submitInternal(IRequestMessage message);
+    IChatCompletionResponse submitInternal(IRequestMessage message);
 
     /**
      * Appends a message to the chat history without invoking the LLM.

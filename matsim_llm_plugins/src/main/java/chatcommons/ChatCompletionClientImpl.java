@@ -85,8 +85,8 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
 				.post(RequestBody.create(body, MediaType.parse("application/json")))
 				.build();
 
-		System.out.println(body);
-		System.out.println(request.toString());
+//		System.out.println(body);
+//		System.out.println(request.toString());
 		
 		
 		
@@ -136,14 +136,36 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
             logEntry.requestBody = body;
             logEntry.responseBody = responseBody;
             logEntry.error = error;
-            String filePath = null;
-            if(services!=null) {
-            	filePath = services.getControlerIO().getIterationFilename(services.getIterationNumber(), rawLogFilePath+"_ChatLog.json");
-            }else {
-            	filePath = rawLogFilePath+"_ChatLog.json";
-            }
             
-            appendJsonLine(filePath, logEntry);
+            logEntry.iteration = (services != null) ? services.getIterationNumber() : null;
+            
+            String iterFilePath;
+            String combinedFilePath;
+
+            if (services != null) {
+                iterFilePath = services.getControlerIO()
+                        .getIterationFilename(services.getIterationNumber(), rawLogFilePath + "_ChatLog.jsonl");
+
+                combinedFilePath = services.getControlerIO()
+                        .getOutputFilename(rawLogFilePath + "_ChatLog_combined.jsonl");
+            } else {
+                iterFilePath = rawLogFilePath + "_ChatLog.json";
+                combinedFilePath = rawLogFilePath + "_ChatLog_combined.jsonl";
+            }
+
+            appendJsonLine(iterFilePath, logEntry);
+            appendJsonLine(combinedFilePath, logEntry);
+            
+            
+//            String filePath = null;
+//            if(services!=null) {
+//            	filePath = services.getControlerIO().getIterationFilename(services.getIterationNumber(), rawLogFilePath+"_ChatLog.json");
+//            	
+//            }else {
+//            	filePath = rawLogFilePath+"_ChatLog.json";
+//            }
+//            
+//            appendJsonLine(filePath, logEntry);
         }
 
 	}
@@ -167,6 +189,8 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
     private static class RawLlmLogEntry {
         String traceId;
         String timestamp;
+        
+        Integer iteration;
 
         String backend;
         String endpoint;

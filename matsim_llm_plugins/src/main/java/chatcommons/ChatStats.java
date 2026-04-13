@@ -15,4 +15,9 @@ public class ChatStats {
 
     public boolean success;
     public String failureType;
+
+    public int promptTokens;
+    public int completionTokens;
+    public int reasoningTokens;
+    public int totalTokens;
 }
