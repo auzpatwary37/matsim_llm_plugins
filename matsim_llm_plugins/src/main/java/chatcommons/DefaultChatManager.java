@@ -94,6 +94,7 @@ public class DefaultChatManager implements IChatManager {
                 stats.promptTokens += usage.getPromptTokens();
                 stats.completionTokens += usage.getCompletionTokens();
                 stats.totalTokens += usage.getTotalTokens();
+                stats.reasoningTokens += usage.getReasoningTokens();
             }
             IResponseMessage response = completionResponse.getMessage();
             history.add(response);

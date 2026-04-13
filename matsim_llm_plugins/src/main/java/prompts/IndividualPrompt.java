@@ -80,7 +80,7 @@ public class IndividualPrompt {
 			+ "      + \"   - Do NOT isolate only the `pt` leg.\\n\"\r\n"
 			+ "      + \"   - Do NOT route between `pt interaction` activities.\\n\"\r\n"
 			+ "      + \"   - Route the full PT trip from the previous real activity/facility to the next real activity/facility using mode `pt`.\\n\"\r\n"
-			+ "      + \"   - The routing tool will generate the full access, transfer, PT, and egress chain.\\n\"\r\n"
+			+ "      + \"   - The routing tool will generate the full access, transfer, PT, and egress chain. You need to insert it between the before and after activity while creating the new plan.\\n\"\r\n"
 			+ "      + \"\\n\"\r\n"
 			+ "      + \"7. Routing granularity rule.\\n\"\r\n"
 			+ "      + \"   - One trip should result in one routing request.\\n\"\r\n"
@@ -99,7 +99,8 @@ public class IndividualPrompt {
 		      + "If a person took a car or bike to a place, that vehicle remains there until used again in a later leg. "
 		      + "For PT trips, treat the whole PT chain as one trip and route it once from the true origin activity to the true destination activity using mode `pt`. "
 		      + "Use any provided experience or context if available. "
-		      + "Return the final result only through the extract_plan tool and make sure the plan matches the expected schema.";;
+		      + "Return the final result only through the extract_plan tool and make sure the plan matches the expected schema. "
+		      + "Be careful to not drop any original activities from the plan.";
 	
 	public static final String planExtractPrompt = "The original daily plan of this person is provided to you. "
 			+ "Make necessary changes to it so that it as you see reasonable. Do not change the schedule too much from the original as the original schedule is from a survey. "

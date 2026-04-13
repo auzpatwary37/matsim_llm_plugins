@@ -58,8 +58,13 @@ public class RouterTool implements ITool<Plan> {
 
     @Override
     public String getDescription() {
-        return "Routes between two MATSim facilities using the MATSim TripRouter. "
-             + "Returns the full routed plan-element stack including PT interaction activities and multiple legs.";
+        return "Routes one trip between two MATSim facilities using the MATSim TripRouter. "
+             + "Returns only the routed trip sub-chain between the two surrounding real activities, not a full plan. "
+             + "The returned elements usually start with a leg and end with a leg. "
+             + "For simple modes, the result may contain a single leg. "
+             + "For public transport, the result may contain multiple legs and pt interaction activities. "
+             + "You must insert the returned sub-chain exactly between the original before-activity and after-activity to reconstruct the full plan. "
+             + "Do not add, remove, reorder, or simplify returned elements.";
     }
 
     @Override
