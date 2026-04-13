@@ -169,6 +169,118 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
         }
 
 	}
+	
+	@Override
+	public IChatCompletionResponse query(List<IChatMessage> history, List<IRequestMessage> userMessage, List<JsonObject> tools, Map<String,Boolean> ifToolDummy) {
+		String endpoint = config.getFullLlmUrl();
+		BackendType backend = config.getBackendEnum();
+		history.addAll(userMessage);
+		
+		long startTime = System.currentTimeMillis();
+        String traceId = UUID.randomUUID().toString();
+
+		// Pick the correct payload builder based on backend
+		IChatCompletionRequest builder = switch (backend) {
+		case OPENAI -> new OpenAiChatRequest();
+		case LM_STUDIO -> new LmStudioChatRequest();
+		case OLLAMA -> new OpenAiChatRequest();
+		};
+
+		String body = builder.serializeToHttpBody(
+				history, tools,ifToolDummy, "auto", config.getTemperature(), config.getMaxTokens(), config.getModelName(), false, userMessage.get(userMessage.size()-1).ifEnableThinking()
+				);
+
+		Request request = new Request.Builder()
+				.url(endpoint)
+				.addHeader("Content-Type", "application/json")
+				.addHeader("Authorization", "Bearer " + config.getAuthorization())
+				.post(RequestBody.create(body, MediaType.parse("application/json")))
+				.build();
+
+//		System.out.println(body);
+//		System.out.println(request.toString());
+		
+		
+		
+		Integer httpStatus = null;
+	    String responseBody = null;
+	    String error = null;
+	    
+		try (Response response = httpClient.newCall(request).execute()) {
+			responseBody  = response.body() != null ? response.body().string() : "(no body)";
+
+			httpStatus = response.code();
+            
+
+			if (!response.isSuccessful()) {
+				throw new IOException("HTTP " + response.code() + " error from OpenAI: " + responseBody);
+			}
+
+			IChatCompletionResponse parsed = switch (backend) {
+			case OPENAI -> gson.fromJson(responseBody, OpenAiChatResponse.class);
+			case LM_STUDIO -> gson.fromJson(responseBody, LmStudioChatResponse.class);
+			case OLLAMA -> gson.fromJson(responseBody, OpenAiChatResponse.class);
+			};
+
+			if (parsed != null) {
+				parsed.postBuildCleanup();
+			}
+
+			return parsed;
+
+		} catch (IOException e) {
+			error = e.toString();
+			throw new RuntimeException("Failed to call LLM endpoint: " + e.getMessage(), e);
+		}finally {
+            long durationMs = System.currentTimeMillis() - startTime;
+
+            RawLlmLogEntry logEntry = new RawLlmLogEntry();
+            logEntry.traceId = traceId;
+            logEntry.timestamp = LocalDateTime.now().toString();
+            logEntry.backend = backend.name();
+            logEntry.endpoint = endpoint;
+            logEntry.modelName = config.getModelName();
+            logEntry.temperature = config.getTemperature();
+            logEntry.maxTokens = config.getMaxTokens();
+            logEntry.thinkingEnabled = userMessage.get(userMessage.size()-1).ifEnableThinking();
+            logEntry.httpStatus = httpStatus;
+            logEntry.durationMs = durationMs;
+            logEntry.requestBody = body;
+            logEntry.responseBody = responseBody;
+            logEntry.error = error;
+            
+            logEntry.iteration = (services != null) ? services.getIterationNumber() : null;
+            
+            String iterFilePath;
+            String combinedFilePath;
+
+            if (services != null) {
+                iterFilePath = services.getControlerIO()
+                        .getIterationFilename(services.getIterationNumber(), rawLogFilePath + "_ChatLog.jsonl");
+
+                combinedFilePath = services.getControlerIO()
+                        .getOutputFilename(rawLogFilePath + "_ChatLog_combined.jsonl");
+            } else {
+                iterFilePath = rawLogFilePath + "_ChatLog.json";
+                combinedFilePath = rawLogFilePath + "_ChatLog_combined.jsonl";
+            }
+
+            appendJsonLine(iterFilePath, logEntry);
+            appendJsonLine(combinedFilePath, logEntry);
+            
+            
+//            String filePath = null;
+//            if(services!=null) {
+//            	filePath = services.getControlerIO().getIterationFilename(services.getIterationNumber(), rawLogFilePath+"_ChatLog.json");
+//            	
+//            }else {
+//            	filePath = rawLogFilePath+"_ChatLog.json";
+//            }
+//            
+//            appendJsonLine(filePath, logEntry);
+        }
+
+	}
 
 	
 

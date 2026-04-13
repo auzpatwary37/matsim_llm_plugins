@@ -29,12 +29,12 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 
 import chatcommons.ChatManagerContainer;
-import chatcommons.ChatResult;
 import chatcommons.DefaultChatManager;
 import chatcommons.IChatCompletionClient;
 import chatcommons.IChatManager;
 import chatcommons.Role;
 import chatrequest.SimpleRequestMessage;
+import chatresponse.ChatResult;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import matsimdtobjects.PlanDTO;
 import prompts.IndividualPrompt;

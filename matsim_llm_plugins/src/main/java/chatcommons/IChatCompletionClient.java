@@ -21,6 +21,17 @@ public interface IChatCompletionClient {
      * @return The assistant's response (may contain tool calls)
      */
     IChatCompletionResponse query(List<IChatMessage> history, IRequestMessage userMessage, List<JsonObject> tools, Map<String,Boolean> ifToolDummy);
+    
+    
+    /**
+     * Queries the LLM using the full conversation history and the new user message.
+     * Responsible for constructing the API payload, sending it, and parsing the response.
+     *
+     * @param history      All prior messages in the conversation (excluding system message)
+     * @param userMessage  The current user message to send
+     * @return The assistant's response (may contain tool calls)
+     */
+    IChatCompletionResponse query(List<IChatMessage> history, List<IRequestMessage> userMessages, List<JsonObject> tools, Map<String,Boolean> ifToolDummy);
 
     /**
      * Returns the name of the underlying LLM model used.

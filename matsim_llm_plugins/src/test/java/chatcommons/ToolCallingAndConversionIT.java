@@ -218,6 +218,13 @@ class ToolCallingAndConversionIT {
         public matsimBinding.LLMConfigGroup getLLMConfig() {
             return null;
         }
+
+		@Override
+		public IChatCompletionResponse query(List<IChatMessage> history, List<IRequestMessage> userMessages,
+				List<JsonObject> tools, Map<String, Boolean> ifToolDummy) {
+			// TODO Auto-generated method stub
+			return null;
+		}
     }
 
     private static class SimpleToolCall implements IToolCall {

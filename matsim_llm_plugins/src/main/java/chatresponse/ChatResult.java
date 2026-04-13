@@ -1,4 +1,4 @@
-package chatcommons;
+package chatresponse;
 
 import java.util.Map;
 

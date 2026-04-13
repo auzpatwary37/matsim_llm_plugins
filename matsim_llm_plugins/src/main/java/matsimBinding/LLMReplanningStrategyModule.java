@@ -7,12 +7,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.population.Activity;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
+import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.api.core.v01.replanning.PlanStrategyModule;
 import org.matsim.core.controler.MatsimServices;
 import org.matsim.core.controler.events.StartupEvent;
@@ -28,16 +31,18 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 
 import chatcommons.ChatManagerContainer;
-import chatcommons.ChatResult;
-import chatcommons.ChatStats;
 import chatcommons.DefaultChatManager;
 import chatcommons.IChatCompletionClient;
 import chatcommons.IChatManager;
 import chatcommons.Role;
 import chatrequest.SimpleRequestMessage;
+import chatresponse.ChatResult;
+import chatresponse.ChatStats;
 import matsimdtobjects.PlanDTO;
 import prompts.IndividualPrompt;
 import rag.IVectorDB;
+import tools.ErrorMessages;
+import tools.ExternalValidator;
 import tools.IToolManager;
 import tools.IToolResponse;
 
@@ -249,10 +254,39 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 			String basePlan = PlanDTO.toDTOFromBaseObject().apply(plan).toJsonObject(this.gson).toString();
 			System.out.println("Sending querry for person Id "+ person.getId());
 			System.out.println(IndividualPrompt.planExtractPrompt+"\n"+basePlan);
-			ChatResult result = chat.submit(new SimpleRequestMessage(
-					Role.USER,
-					IndividualPrompt.chatGPTPlanExtractionPrompt+"\n"+basePlan
-					));
+			
+			Map<String, ExternalValidator<?>> validators = new HashMap<>();
+
+			validators.put("extract_plan", new ExternalValidator<Plan>() {
+			    @Override
+			    public Class<Plan> getTargetType() {
+			        return Plan.class;
+			    }
+
+			    @Override
+			    public String getTargetToolName() {
+			        return "extract_plan";
+			    }
+
+			    @Override
+			    public boolean validate(Plan candidate, Map<String, Object> context, ErrorMessages em) {
+			        checkOriginalActivityConsistency(plan, candidate, em);
+			        return em.isEmpty();
+			    }
+			});
+
+			ChatResult result = chat.submit(
+			    new SimpleRequestMessage(
+			        Role.USER,
+			        IndividualPrompt.chatGPTPlanExtractionPrompt + "\n" + basePlan
+			    ),
+			    validators
+			);
+			
+//			ChatResult result = chat.submit(new SimpleRequestMessage(
+//					Role.USER,
+//					IndividualPrompt.chatGPTPlanExtractionPrompt+"\n"+basePlan
+//					));
 
 			Map<String, IToolResponse<?>> output = result.toolResponses;
 			ChatStats stats = result.stats;
@@ -366,6 +400,111 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 			}
 		}
 		System.out.println("Total LLM agent = "+ totalLLMAgent);
+	}
+	
+
+
+	public static void checkOriginalActivityConsistency(Plan oldPlan, Plan newPlan, ErrorMessages em) {
+	    if (em == null) return;
+
+	    if (oldPlan == null) {
+	        em.addErrorMessages("Original plan is null.");
+	        return;
+	    }
+	    if (newPlan == null) {
+	        em.addErrorMessages("New plan is null.");
+	        return;
+	    }
+
+	    List<ActivitySignature> oldActs = extractRealActivities(oldPlan);
+	    List<ActivitySignature> newActs = extractRealActivities(newPlan);
+
+	    if (oldActs.size() != newActs.size()) {
+	        em.addErrorMessages(
+	            "Original activity count changed. Expected " + oldActs.size()
+	            + " real activities but got " + newActs.size() + "."
+	        );
+	    }
+
+	    int compareCount = Math.min(oldActs.size(), newActs.size());
+
+	    for (int i = 0; i < compareCount; i++) {
+	        ActivitySignature oldSig = oldActs.get(i);
+	        ActivitySignature newSig = newActs.get(i);
+
+	        if (!Objects.equals(oldSig.type, newSig.type)) {
+	            em.addErrorMessages(
+	                "Original activity order/type changed at index " + i
+	                + ". Expected type '" + oldSig.type + "' but got '" + newSig.type + "'."
+	            );
+	        }
+
+	        if (!Objects.equals(oldSig.locationKey, newSig.locationKey)) {
+	            em.addErrorMessages(
+	                "Original activity location changed at index " + i
+	                + ". Expected location '" + oldSig.locationKey
+	                + "' but got '" + newSig.locationKey + "'."
+	            );
+	        }
+	    }
+
+	    if (oldActs.size() > newActs.size()) {
+	        for (int i = newActs.size(); i < oldActs.size(); i++) {
+	            ActivitySignature oldSig = oldActs.get(i);
+	            em.addErrorMessages(
+	                "Original activity was dropped at index " + i
+	                + ": type='" + oldSig.type + "', location='" + oldSig.locationKey + "'."
+	            );
+	        }
+	    } else if (newActs.size() > oldActs.size()) {
+	        for (int i = oldActs.size(); i < newActs.size(); i++) {
+	            ActivitySignature newSig = newActs.get(i);
+	            em.addErrorMessages(
+	                "A new extra activity was added at index " + i
+	                + ": type='" + newSig.type + "', location='" + newSig.locationKey + "'."
+	            );
+	        }
+	    }
+	}
+
+	private static List<ActivitySignature> extractRealActivities(Plan plan) {
+	    List<ActivitySignature> out = new ArrayList<>();
+
+	    for (PlanElement pe : plan.getPlanElements()) {
+	        if (!(pe instanceof Activity)) continue;
+
+	        Activity act = (Activity) pe;
+	        if (isInteractionActivity(act)) continue;
+
+	        out.add(new ActivitySignature(act.getType(), getLocationKey(act)));
+	    }
+
+	    return out;
+	}
+
+	private static boolean isInteractionActivity(Activity act) {
+	    if (act == null || act.getType() == null) return false;
+	    return act.getType().toLowerCase().contains("interaction");
+	}
+
+	private static String getLocationKey(Activity act) {
+	    if (act.getFacilityId() != null) {
+	        return "facility:" + act.getFacilityId();
+	    }
+	    if (act.getLinkId() != null) {
+	        return "link:" + act.getLinkId();
+	    }
+	    return "none";
+	}
+
+	private static final class ActivitySignature {
+	    private final String type;
+	    private final String locationKey;
+
+	    private ActivitySignature(String type, String locationKey) {
+	        this.type = type;
+	        this.locationKey = locationKey;
+	    }
 	}
 
 }

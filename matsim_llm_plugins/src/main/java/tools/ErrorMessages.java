@@ -20,9 +20,15 @@ public class ErrorMessages{
 	
 	public String getCombinedErrorMessages() {
 		String s = "";
+		String sep = "";
 		for(String ss:this.errorMessages) {
-			s=s+ss;
+			s=s+sep+ss;
+			sep = "\n";
 		}
 		return s;
+	}
+	
+	public boolean isEmpty() {
+		return this.errorMessages.isEmpty();
 	}
 }

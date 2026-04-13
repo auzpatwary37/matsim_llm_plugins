@@ -1,4 +1,4 @@
-package chatcommons;
+package chatresponse;
 
 public class ChatStats {
     public int llmRounds;
@@ -7,7 +7,8 @@ public class ChatStats {
     public int toolParsingFailures;
     public int toolVerificationFailures;
     public int toolExecutionFailures;
-
+    public int externalValidationFailures;
+    
     public int noToolCallRetries;
     public boolean hitMaxIterations;
 
@@ -20,4 +21,6 @@ public class ChatStats {
     public int completionTokens;
     public int reasoningTokens;
     public int totalTokens;
+    
+    
 }

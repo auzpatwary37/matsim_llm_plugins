@@ -7,7 +7,9 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.population.Person;
 
 import chatrequest.IRequestMessage;
+import chatresponse.ChatResult;
 import chatresponse.IChatCompletionResponse;
+import tools.ExternalValidator;
 
 public interface IChatManager {
 	
@@ -39,6 +41,16 @@ public interface IChatManager {
      * @return A map of toolCallId to IToolResponse for all executed tools
      */
     ChatResult submit(IRequestMessage userMessage);
+    
+    /**
+     * External entry point from MATSim.
+     * Submits a user message to the LLM, executes all tool calls,
+     * and returns all tool responses (including dummy tools).
+     *
+     * @param userMessage The initial user message
+     * @return A map of toolCallId to IToolResponse for all executed tools
+     */
+    ChatResult submit(IRequestMessage userMessage,Map<String,ExternalValidator<?>> externalToolResultValidator);
 
     /**
      * Internal step that sends a message to the LLM and returns its assistant reply.
@@ -48,6 +60,15 @@ public interface IChatManager {
      * @return The assistant’s next message
      */
     IChatCompletionResponse submitInternal(IRequestMessage message);
+    
+    /**
+     * Internal step that sends a message to the LLM and returns its assistant reply.
+     * Used during reasoning loop after injecting tool responses.
+     *
+     * @param message The request message (typically role=tool)
+     * @return The assistant’s next message
+     */
+    IChatCompletionResponse submitInternal(List<IRequestMessage> messages);
 
     /**
      * Appends a message to the chat history without invoking the LLM.

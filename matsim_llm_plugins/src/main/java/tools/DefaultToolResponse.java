@@ -58,5 +58,6 @@ public class DefaultToolResponse<T> implements IToolResponse<T> {
 		
 		return this.isForLLM;
 	}
+
 }
 
