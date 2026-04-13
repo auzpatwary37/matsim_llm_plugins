@@ -108,8 +108,41 @@ public class PlanDTO extends ToolArgumentDTO<Plan> {
                     throw new RuntimeException("PlanDTO: unknown elementType: " + elementType);
             }
         }
-
+        checkAndFixRoutingMode(dto);
         return dto;
+    }
+    
+    private static void checkAndFixRoutingMode(PlanDTO dto) {
+
+        if (dto.elements == null || dto.elements.isEmpty()) return;
+
+        for (int i = 0; i < dto.elements.size(); i++) {
+
+            if (!(dto.elements.get(i) instanceof LegDTO leg)) continue;
+
+            String mode = leg.mode;
+            boolean isPtChain = false;
+
+            if (i > 0 && dto.elements.get(i - 1) instanceof ActivityDTO prevAct) {
+                if ("pt interaction".equals(prevAct.type)) {
+                    isPtChain = true;
+                }
+            }
+
+            if (i < dto.elements.size() - 1 && dto.elements.get(i + 1) instanceof ActivityDTO nextAct) {
+                if ("pt interaction".equals(nextAct.type)) {
+                    isPtChain = true;
+                }
+            }
+
+            if ("pt".equals(mode)) {
+                leg.routingMode = "pt";
+            } else if ("walk".equals(mode) && isPtChain) {
+                leg.routingMode = "pt";
+            } else if (leg.routingMode == null) {
+                leg.routingMode = mode;
+            }
+        }
     }
     
     @Override
