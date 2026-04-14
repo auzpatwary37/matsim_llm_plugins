@@ -107,7 +107,7 @@ public class ExampleTool implements ITool<ExampleTool.ExampleOutput> {
             STATIC_SCHEMA = schema;
         }
 		@Override
-		public boolean isVerified(ErrorMessages em) {//no additional verification for this test case. 
+		public boolean isVerified(ErrorMessages em, Map<String,Object> context) {//no additional verification for this test case. 
 			return true;
 		}
     }

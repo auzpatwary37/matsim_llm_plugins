@@ -165,12 +165,12 @@ public class PlanDTO extends ToolArgumentDTO<Plan> {
 
     @Override
     public Plan toBaseClass(Map<String, Object> context, ErrorMessages em) {
-        if (!isVerified(em)) return null;
+        if (!isVerified(em, context)) return null;
 
         Plan plan = PopulationUtils.createPlan();
 
         for (PlanElementDTO<?> elementDTO : elements) {
-            if (elementDTO == null || !elementDTO.isVerified(em)) {
+            if (elementDTO == null || !elementDTO.isVerified(em, context)) {
                 return null;
             }
 
@@ -189,7 +189,7 @@ public class PlanDTO extends ToolArgumentDTO<Plan> {
     }
 
     @Override
-    public boolean isVerified(ErrorMessages em) {
+    public boolean isVerified(ErrorMessages em, Map<String,Object> context) {
         boolean outcome = true;
 
         if (elements == null || elements.isEmpty()) {
@@ -204,7 +204,7 @@ public class PlanDTO extends ToolArgumentDTO<Plan> {
             if (element == null) {
                 outcome = false;
                 em.addErrorMessages("Plan element at position " + i + " is null.");
-            } else if (!element.isVerified(em)) {
+            } else if (!element.isVerified(em,context)) {
                 outcome = false;
             }
         }

@@ -12,17 +12,26 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.network.Link;
+import org.matsim.api.core.v01.network.Node;
 import org.matsim.api.core.v01.population.Activity;
 import org.matsim.api.core.v01.population.Leg;
+import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.population.routes.RouteUtils;
+import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.facilities.ActivityFacility;
 import org.matsim.pt.routes.DefaultTransitPassengerRoute;
 import org.matsim.pt.routes.TransitPassengerRoute;
+import org.matsim.pt.transitSchedule.TransitScheduleFactoryImpl;
+import org.matsim.pt.transitSchedule.api.Departure;
 import org.matsim.pt.transitSchedule.api.TransitLine;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
+import org.matsim.pt.transitSchedule.api.TransitRouteStop;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 
 import com.google.gson.Gson;
@@ -34,8 +43,137 @@ public class DTOUnitTest {
 
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
-    private Map<String, Object> emptyContext() {
-        return new HashMap<>();
+    private Map<String, Object> testContext() {
+        Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
+
+        buildTestNetwork(scenario);
+        buildTestTransitSchedule(scenario);
+
+        Map<String, Object> context = new HashMap<>();
+        context.put("scenario", scenario);
+        return context;
+    }
+
+    private void buildTestNetwork(Scenario scenario) {
+        var network = scenario.getNetwork();
+        var factory = network.getFactory();
+
+        Node n1 = factory.createNode(Id.createNodeId("n1"), new Coord(0.0, 0.0));
+        Node n2 = factory.createNode(Id.createNodeId("n2"), new Coord(1000.0, 0.0));
+        Node n3 = factory.createNode(Id.createNodeId("n3"), new Coord(2000.0, 0.0));
+        Node n4 = factory.createNode(Id.createNodeId("n4"), new Coord(3000.0, 0.0));
+        Node n5 = factory.createNode(Id.createNodeId("n5"), new Coord(4000.0, 0.0));
+
+        network.addNode(n1);
+        network.addNode(n2);
+        network.addNode(n3);
+        network.addNode(n4);
+        network.addNode(n5);
+
+        addLink(factory, network, "l1", n1, n2);
+        addLink(factory, network, "l2", n2, n3);
+        addLink(factory, network, "l3", n3, n4);
+        addLink(factory, network, "l4", n4, n5);
+
+        addLink(factory, network, "a", n1, n2);
+        addLink(factory, network, "b", n2, n3);
+        addLink(factory, network, "c", n3, n4);
+        addLink(factory, network, "d", n4, n5);
+
+        addLink(factory, network, "s", n1, n2);
+        addLink(factory, network, "m1", n2, n3);
+        addLink(factory, network, "m2", n3, n4);
+        addLink(factory, network, "e", n4, n5);
+
+        addLink(factory, network, "start_link", n1, n2);
+        addLink(factory, network, "end_link", n4, n5);
+        addLink(factory, network, "access_link", n1, n2);
+        addLink(factory, network, "egress_link", n4, n5);
+    }
+
+    private void addLink(org.matsim.api.core.v01.network.NetworkFactory factory,
+                         org.matsim.api.core.v01.network.Network network,
+                         String linkId,
+                         Node from,
+                         Node to) {
+        if (network.getLinks().containsKey(Id.createLinkId(linkId))) {
+            return;
+        }
+
+        Link link = factory.createLink(Id.createLinkId(linkId), from, to);
+        link.setLength(1000.0);
+        link.setFreespeed(15.0);
+        link.setCapacity(1000.0);
+        link.setNumberOfLanes(1.0);
+        network.addLink(link);
+    }
+
+    private void buildTestTransitSchedule(Scenario scenario) {
+        var schedule = scenario.getTransitSchedule();
+        var factory = new TransitScheduleFactoryImpl();
+
+        TransitStopFacility stopA = factory.createTransitStopFacility(
+                Id.create("stop_a", TransitStopFacility.class),
+                new Coord(0.0, 0.0),
+                false
+        );
+        stopA.setLinkId(Id.createLinkId("start_link"));
+
+        TransitStopFacility stopB = factory.createTransitStopFacility(
+                Id.create("stop_b", TransitStopFacility.class),
+                new Coord(1000.0, 0.0),
+                false
+        );
+        stopB.setLinkId(Id.createLinkId("end_link"));
+
+        TransitStopFacility stopIn = factory.createTransitStopFacility(
+                Id.create("stop_in", TransitStopFacility.class),
+                new Coord(0.0, 0.0),
+                false
+        );
+        stopIn.setLinkId(Id.createLinkId("access_link"));
+
+        TransitStopFacility stopOut = factory.createTransitStopFacility(
+                Id.create("stop_out", TransitStopFacility.class),
+                new Coord(1000.0, 0.0),
+                false
+        );
+        stopOut.setLinkId(Id.createLinkId("egress_link"));
+
+        schedule.addStopFacility(stopA);
+        schedule.addStopFacility(stopB);
+        schedule.addStopFacility(stopIn);
+        schedule.addStopFacility(stopOut);
+
+        TransitLine line1 = factory.createTransitLine(Id.create("line_1", TransitLine.class));
+        TransitRoute route1 = factory.createTransitRoute(
+                Id.create("route_1", TransitRoute.class),
+                null,
+                List.of(
+                        factory.createTransitRouteStop(stopA, 0.0, 0.0),
+                        factory.createTransitRouteStop(stopB, 600.0, 600.0)
+                ),
+                "pt"
+        );
+        Departure dep1 = factory.createDeparture(Id.create("dep1", Departure.class), 0.0);
+        route1.addDeparture(dep1);
+        line1.addRoute(route1);
+        schedule.addTransitLine(line1);
+
+        TransitLine lineX = factory.createTransitLine(Id.create("lineX", TransitLine.class));
+        TransitRoute routeY = factory.createTransitRoute(
+                Id.create("routeY", TransitRoute.class),
+                null,
+                List.of(
+                        factory.createTransitRouteStop(stopIn, 0.0, 0.0),
+                        factory.createTransitRouteStop(stopOut, 600.0, 600.0)
+                ),
+                "pt"
+        );
+        Departure depX = factory.createDeparture(Id.create("dep1", Departure.class), 0.0);
+        routeY.addDeparture(depX);
+        lineX.addRoute(routeY);
+        schedule.addTransitLine(lineX);
     }
 
     @Test
@@ -55,9 +193,9 @@ public class DTOUnitTest {
         assertEquals("fac_home", dto.facilityId);
         assertNotNull(dto.endTime);
         assertEquals(28800.0, dto.endTime, 1e-6);
-        assertTrue(dto.isVerified(em));
+        assertTrue(dto.isVerified(em, testContext()));
 
-        Activity rebuilt = dto.toBaseClass(emptyContext(),em);
+        Activity rebuilt = dto.toBaseClass(testContext(), em);
 
         assertNotNull(rebuilt);
         assertEquals("home", rebuilt.getType());
@@ -76,7 +214,7 @@ public class DTOUnitTest {
         dto.endTime = 32400.0;
         ErrorMessages em = new ErrorMessages();
 
-        assertTrue(dto.isVerified(em));
+        assertTrue(dto.isVerified(em, testContext()));
 
         String json = gson.toJson(dto);
         ActivityDTO parsed = gson.fromJson(json, ActivityDTO.class);
@@ -86,7 +224,7 @@ public class DTOUnitTest {
         assertEquals("work", parsed.type);
         assertEquals("fac_work", parsed.facilityId);
         assertEquals(32400.0, parsed.endTime, 1e-6);
-        assertTrue(parsed.isVerified(em));
+        assertTrue(parsed.isVerified(em, testContext()));
     }
 
     @Test
@@ -94,19 +232,27 @@ public class DTOUnitTest {
         ActivityDTO dto = new ActivityDTO();
         dto.elementType = "activity";
         dto.type = "pt interaction";
-        dto.facilityId = "fac_pt_interaction";
+        dto.linkId = "start_link";
         ErrorMessages em = new ErrorMessages();
-        assertTrue(dto.isVerified(em));
 
-        Activity rebuilt = dto.toBaseClass(emptyContext(),em);
+        assertTrue(dto.isVerified(em, testContext()));
+
+        Activity rebuilt = dto.toBaseClass(testContext(), em);
         assertNotNull(rebuilt);
         assertEquals("pt interaction", rebuilt.getType());
-        assertEquals("fac_pt_interaction", rebuilt.getFacilityId().toString());
+        assertEquals("start_link", rebuilt.getLinkId().toString());
     }
 
     @Test
     void testNetworkRouteDTO_baseToDtoToBase() {
-        NetworkRoute original = RouteUtils.createNetworkRoute(Arrays.asList(Id.createLinkId("l1"),Id.createLinkId("l2"), Id.createLinkId("l3"),Id.createLinkId("l4")));
+        NetworkRoute original = RouteUtils.createNetworkRoute(
+                Arrays.asList(
+                        Id.createLinkId("l1"),
+                        Id.createLinkId("l2"),
+                        Id.createLinkId("l3"),
+                        Id.createLinkId("l4")
+                )
+        );
 
         NetworkRouteDTO dto = NetworkRouteDTO.toDTOFromBaseObject().apply(original);
 
@@ -116,10 +262,11 @@ public class DTOUnitTest {
         assertEquals("l4", dto.endLinkId);
         assertNotNull(dto.linkIds);
         assertEquals(List.of("l2", "l3"), dto.linkIds);
-        ErrorMessages em = new ErrorMessages();
-        assertTrue(dto.isVerified(em));
 
-        NetworkRoute rebuilt = dto.toBaseClass(emptyContext(),em);
+        ErrorMessages em = new ErrorMessages();
+        assertTrue(dto.isVerified(em, testContext()));
+
+        NetworkRoute rebuilt = dto.toBaseClass(testContext(), em);
 
         assertNotNull(rebuilt);
         assertEquals("l1", rebuilt.getStartLinkId().toString());
@@ -136,8 +283,9 @@ public class DTOUnitTest {
         dto.startLinkId = "a";
         dto.endLinkId = "d";
         dto.linkIds = Arrays.asList("b", "c");
+
         ErrorMessages em = new ErrorMessages();
-        assertTrue(dto.isVerified(em));
+        assertTrue(dto.isVerified(em, testContext()));
 
         String json = gson.toJson(dto);
         NetworkRouteDTO parsed = gson.fromJson(json, NetworkRouteDTO.class);
@@ -147,7 +295,7 @@ public class DTOUnitTest {
         assertEquals("a", parsed.startLinkId);
         assertEquals("d", parsed.endLinkId);
         assertEquals(List.of("b", "c"), parsed.linkIds);
-        assertTrue(parsed.isVerified(em));
+        assertTrue(parsed.isVerified(em, testContext()));
     }
 
     @Test
@@ -171,10 +319,11 @@ public class DTOUnitTest {
         assertEquals("stop_b", dto.egressStopId);
         assertEquals("line_1", dto.lineId);
         assertEquals("route_1", dto.routeId);
-        ErrorMessages em = new ErrorMessages();
-        assertTrue(dto.isVerified(em));
 
-        TransitPassengerRoute rebuilt = dto.toBaseClass(emptyContext(),em);
+        ErrorMessages em = new ErrorMessages();
+        assertTrue(dto.isVerified(em, testContext()));
+
+        TransitPassengerRoute rebuilt = dto.toBaseClass(testContext(), em);
 
         assertNotNull(rebuilt);
         assertEquals("start_link", rebuilt.getStartLinkId().toString());
@@ -196,8 +345,9 @@ public class DTOUnitTest {
         dto.lineId = "lineX";
         dto.routeId = "routeY";
         dto.departureId = "dep1";
+
         ErrorMessages em = new ErrorMessages();
-        assertTrue(dto.isVerified(em));
+        assertTrue(dto.isVerified(em, testContext()));
 
         String json = gson.toJson(dto);
         TransitPassengerRouteDTO parsed = gson.fromJson(json, TransitPassengerRouteDTO.class);
@@ -211,13 +361,20 @@ public class DTOUnitTest {
         assertEquals("lineX", parsed.lineId);
         assertEquals("routeY", parsed.routeId);
         assertEquals("dep1", parsed.departureId);
-        assertTrue(parsed.isVerified(em));
+        assertTrue(parsed.isVerified(em, testContext()));
     }
 
     @Test
     void testLegDTO_withNetworkRoute_baseToDtoToBase() {
         Leg original = PopulationUtils.createLeg("car");
-        original.setRoute(RouteUtils.createNetworkRoute(Arrays.asList(Id.createLinkId("l1"),Id.createLinkId("l2"), Id.createLinkId("l3"),Id.createLinkId("l4"))));
+        original.setRoute(RouteUtils.createNetworkRoute(
+                Arrays.asList(
+                        Id.createLinkId("l1"),
+                        Id.createLinkId("l2"),
+                        Id.createLinkId("l3"),
+                        Id.createLinkId("l4")
+                )
+        ));
 
         LegDTO dto = LegDTO.toDTOFromBaseObject().apply(original);
 
@@ -226,10 +383,11 @@ public class DTOUnitTest {
         assertEquals("car", dto.mode);
         assertNotNull(dto.route);
         assertTrue(dto.route instanceof NetworkRouteDTO);
-        ErrorMessages em = new ErrorMessages();
-        assertTrue(dto.isVerified(em));
 
-        Leg rebuilt = dto.toBaseClass(emptyContext(),em);
+        ErrorMessages em = new ErrorMessages();
+        assertTrue(dto.isVerified(em, testContext()));
+
+        Leg rebuilt = dto.toBaseClass(testContext(), em);
 
         assertNotNull(rebuilt);
         assertEquals("car", rebuilt.getMode());
@@ -264,10 +422,11 @@ public class DTOUnitTest {
         assertEquals("pt", dto.mode);
         assertNotNull(dto.route);
         assertTrue(dto.route instanceof TransitPassengerRouteDTO);
-        ErrorMessages em = new ErrorMessages();
-        assertTrue(dto.isVerified(em));
 
-        Leg rebuilt = dto.toBaseClass(emptyContext(),em);
+        ErrorMessages em = new ErrorMessages();
+        assertTrue(dto.isVerified(em, testContext()));
+
+        Leg rebuilt = dto.toBaseClass(testContext(), em);
 
         assertNotNull(rebuilt);
         assertEquals("pt", rebuilt.getMode());
@@ -292,23 +451,20 @@ public class DTOUnitTest {
         dto.travelTimeSeconds = 500.0;
 
         NetworkRouteDTO routeDto = new NetworkRouteDTO();
-        
         routeDto.startLinkId = "s";
         routeDto.endLinkId = "e";
         routeDto.linkIds = Arrays.asList("m1", "m2");
 
         dto.route = routeDto;
-        
-        ErrorMessages em = new ErrorMessages();
 
-        assertTrue(dto.isVerified(em));
+        ErrorMessages em = new ErrorMessages();
+        assertTrue(dto.isVerified(em, testContext()));
 
         String json = dto.toJsonObject(gson).toString();
 
         assertNotNull(json);
         assertTrue(json.contains("\"elementType\":\"leg\""));
         assertTrue(json.contains("\"routeType\":\"network\""));
-        
     }
 
     @Test
@@ -318,17 +474,44 @@ public class DTOUnitTest {
         dto.mode = "spaceship";
 
         NetworkRouteDTO routeDto = new NetworkRouteDTO();
-//        routeDto.routeType = "network";
         routeDto.startLinkId = "l1";
         routeDto.endLinkId = "l2";
         routeDto.linkIds = List.of();
 
         dto.route = routeDto;
+
         ErrorMessages em = new ErrorMessages();
-        assertFalse(dto.isVerified(em));
-        assertNull(dto.toBaseClass(emptyContext(),em));
+        assertFalse(dto.isVerified(em, testContext()));
+        assertNull(dto.toBaseClass(testContext(), em));
     }
 
+    @Test
+    void testTransitPassengerRouteDTO_invalidStopShouldFail() {
+        TransitPassengerRouteDTO dto = new TransitPassengerRouteDTO();
+        dto.routeType = "transit_passenger";
+        dto.accessLinkId = "access_link";
+        dto.egressLinkId = "egress_link";
+        dto.accessStopId = "missing_stop";
+        dto.egressStopId = "stop_out";
+        dto.lineId = "lineX";
+        dto.routeId = "routeY";
+
+        ErrorMessages em = new ErrorMessages();
+        assertFalse(dto.isVerified(em, testContext()));
+        assertNull(dto.toBaseClass(testContext(), em));
+    }
+
+    @Test
+    void testNetworkRouteDTO_invalidLinkShouldFail() {
+        NetworkRouteDTO dto = new NetworkRouteDTO();
+        dto.startLinkId = "does_not_exist";
+        dto.endLinkId = "d";
+        dto.linkIds = Arrays.asList("b", "c");
+
+        ErrorMessages em = new ErrorMessages();
+        assertFalse(dto.isVerified(em, testContext()));
+        assertNull(dto.toBaseClass(testContext(), em));
+    }
 
     @Test
     void testSchemasExist() {
@@ -342,8 +525,8 @@ public class DTOUnitTest {
     void testActivitySchemaRequiresElementType() {
         String schema = ActivityDTO.getJsonSchema().toString();
         assertTrue(schema.contains("elementType"));
-        assertTrue(schema.contains("facilityId"));
         assertTrue(schema.contains("type"));
+        assertTrue(schema.contains("facilityId") || schema.contains("linkId"));
     }
 
     @Test

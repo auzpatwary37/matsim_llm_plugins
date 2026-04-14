@@ -62,7 +62,7 @@ public class LegDTO extends PlanElementDTO<Leg> {
 
 	@Override
 	public Leg toBaseClass(Map<String, Object> context, ErrorMessages em) {
-		if (!isVerified(em)) {
+		if (!isVerified(em, context)) {
 			return null;
 		}
 
@@ -102,7 +102,7 @@ public class LegDTO extends PlanElementDTO<Leg> {
 	}
 
 	@Override
-	public boolean isVerified(ErrorMessages em) {
+	public boolean isVerified(ErrorMessages em, Map<String,Object> context) {
 		boolean outcome = true;
 
 		if (!"leg".equals(elementType)) {
@@ -135,7 +135,7 @@ public class LegDTO extends PlanElementDTO<Leg> {
 			em.addErrorMessages("travelTimeSeconds is negative.");
 		}
 
-		if (route != null && !route.isVerified(em)) {
+		if (route != null && !route.isVerified(em, context)) {
 			outcome = false;
 		}
 

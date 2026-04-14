@@ -54,7 +54,7 @@ public class GenericRouteDTO extends RouteDTO<Route> {
 
     @Override
     public Route toBaseClass(Map<String, Object> context, ErrorMessages em) {
-        if (!isVerified(em)) return null;
+        if (!isVerified(em, context)) return null;
 
         GenericRouteImpl r = new GenericRouteImpl(
             startLinkId != null && !startLinkId.trim().isEmpty() ? Id.createLinkId(startLinkId.trim()) : null,
@@ -77,7 +77,7 @@ public class GenericRouteDTO extends RouteDTO<Route> {
     }
 
     @Override
-    public boolean isVerified(ErrorMessages em) {
+    public boolean isVerified(ErrorMessages em, Map<String,Object> context) {
         boolean outcome = true;
 
         if (!"generic".equals(routeType)) {

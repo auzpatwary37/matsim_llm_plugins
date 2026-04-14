@@ -73,7 +73,7 @@ public class TransitPassengerRouteDTO extends RouteDTO<TransitPassengerRoute> {
 
     @Override
     public TransitPassengerRoute toBaseClass(Map<String, Object> context, ErrorMessages em) {
-        if (!isVerified(em)) {
+        if (!isVerified(em, context)) {
             return null;
         }
 
@@ -101,9 +101,8 @@ public class TransitPassengerRouteDTO extends RouteDTO<TransitPassengerRoute> {
 
         return ptRoute;
     }
-
     @Override
-    public boolean isVerified(ErrorMessages em) {
+    public boolean isVerified(ErrorMessages em, Map<String, Object> context) {
         boolean outcome = true;
 
         if (!"transit_passenger".equals(routeType)) {
@@ -144,6 +143,84 @@ public class TransitPassengerRouteDTO extends RouteDTO<TransitPassengerRoute> {
         if (departureId != null && !isNonBlank(departureId)) {
             outcome = false;
             em.addErrorMessages("departureId is present but blank.");
+        }
+
+        // ===== CONTEXT VALIDATION =====
+        Object scenarioObj = context == null ? null : context.get("scenario");
+
+        if (scenarioObj == null) {
+            outcome = false;
+            em.addErrorMessages("Scenario is missing from context.");
+            return outcome;
+        }
+
+        if (!(scenarioObj instanceof org.matsim.api.core.v01.Scenario scenario)) {
+            outcome = false;
+            em.addErrorMessages("Context entry 'scenario' is not a MATSim Scenario.");
+            return outcome;
+        }
+
+        var network = scenario.getNetwork();
+        var schedule = scenario.getTransitSchedule();
+
+        // ---- LINK VALIDATION ----
+        if (isNonBlank(accessLinkId) &&
+                !network.getLinks().containsKey(org.matsim.api.core.v01.Id.createLinkId(accessLinkId))) {
+            outcome = false;
+            em.addErrorMessages("accessLinkId '" + accessLinkId + "' does not exist in the network.");
+        }
+
+        if (isNonBlank(egressLinkId) &&
+                !network.getLinks().containsKey(org.matsim.api.core.v01.Id.createLinkId(egressLinkId))) {
+            outcome = false;
+            em.addErrorMessages("egressLinkId '" + egressLinkId + "' does not exist in the network.");
+        }
+
+        // ---- STOP VALIDATION (THIS IS YOUR CRASH FIX) ----
+        if (isNonBlank(accessStopId) &&
+                !schedule.getFacilities().containsKey(
+                        org.matsim.api.core.v01.Id.create(accessStopId, org.matsim.pt.transitSchedule.api.TransitStopFacility.class))) {
+            outcome = false;
+            em.addErrorMessages("accessStopId '" + accessStopId + "' does not exist in the transit schedule.");
+        }
+
+        if (isNonBlank(egressStopId) &&
+                !schedule.getFacilities().containsKey(
+                        org.matsim.api.core.v01.Id.create(egressStopId, org.matsim.pt.transitSchedule.api.TransitStopFacility.class))) {
+            outcome = false;
+            em.addErrorMessages("egressStopId '" + egressStopId + "' does not exist in the transit schedule.");
+        }
+
+        // ---- LINE + ROUTE VALIDATION ----
+        if (isNonBlank(lineId)) {
+            var line = schedule.getTransitLines().get(
+                    org.matsim.api.core.v01.Id.create(lineId, org.matsim.pt.transitSchedule.api.TransitLine.class)
+            );
+
+            if (line == null) {
+                outcome = false;
+                em.addErrorMessages("lineId '" + lineId + "' does not exist in the transit schedule.");
+            } else {
+                if (isNonBlank(routeId)) {
+                    var route = line.getRoutes().get(
+                            org.matsim.api.core.v01.Id.create(routeId, org.matsim.pt.transitSchedule.api.TransitRoute.class)
+                    );
+
+                    if (route == null) {
+                        outcome = false;
+                        em.addErrorMessages("routeId '" + routeId + "' does not exist in line '" + lineId + "'.");
+                    } else if (departureId != null) {
+                        var dep = route.getDepartures().get(
+                                org.matsim.api.core.v01.Id.create(departureId, org.matsim.pt.transitSchedule.api.Departure.class)
+                        );
+
+                        if (dep == null) {
+                            outcome = false;
+                            em.addErrorMessages("departureId '" + departureId + "' does not exist in route '" + routeId + "'.");
+                        }
+                    }
+                }
+            }
         }
 
         return outcome;

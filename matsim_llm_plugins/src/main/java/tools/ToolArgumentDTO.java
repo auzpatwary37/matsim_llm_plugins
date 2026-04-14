@@ -19,7 +19,7 @@ public abstract class ToolArgumentDTO <T>{
 	 * Provides additional verification option after creation is complete. Internal consistency verification.
 	 * @return
 	 */
-	public abstract boolean isVerified(ErrorMessages em);
+	public abstract boolean isVerified(ErrorMessages em,Map<String,Object> context);
 	
 	/**
 	 * Optional hook executed immediately after the DTO is populated from JSON using Gson.

@@ -88,7 +88,7 @@ public interface ITool<T>{
                 String key = entry.getKey();
                 if (parsed.has(key)) {
                     ToolArgument<?, ? extends ToolArgumentDTO<?>> arg = entry.getValue();
-                    Object base = arg.fromJson(parsed.get(key).toString(), gson, em);
+                    Object base = arg.fromJson(parsed.get(key).toString(), gson, em, context);
                     baseObjects.put(key, base);
                 }
             }

@@ -141,7 +141,7 @@ public class SerializableClassWrapperDTO<T> extends ToolArgumentDTO<T> {
     }
 
     @Override
-    public boolean isVerified(ErrorMessages em) {
+    public boolean isVerified(ErrorMessages em, Map<String,Object> context) {
         return true; // no validation logic for wrapper — assumed valid after deserialization
     }
 }

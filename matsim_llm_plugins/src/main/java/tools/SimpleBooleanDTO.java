@@ -26,7 +26,7 @@ public class SimpleBooleanDTO extends ToolArgumentDTO<Boolean> {
     }
 
     @Override
-    public boolean isVerified(ErrorMessages em) {
+    public boolean isVerified(ErrorMessages em, Map<String,Object> context) {
         return true; // or: return true if you want to allow default false
     }
 

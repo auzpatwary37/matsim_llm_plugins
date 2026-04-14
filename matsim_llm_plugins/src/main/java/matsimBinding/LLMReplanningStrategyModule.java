@@ -132,6 +132,7 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 	                "toolParsingFailures",
 	                "toolVerificationFailures",
 	                "toolExecutionFailures",
+	                "toolExternalVerificationFailures",
 	                "noToolCallRetries",
 	                "hitMaxIterations",
 	                "returnedExtractPlan",
@@ -161,6 +162,7 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 	                    "toolParsingFailures",
 	                    "toolVerificationFailures",
 	                    "toolExecutionFailures",
+	                    "toolExternalVerificationFailures",
 	                    "noToolCallRetries",
 	                    "hitMaxIterations",
 	                    "returnedExtractPlan",
@@ -209,6 +211,7 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 	                String.valueOf(stats.toolParsingFailures),
 	                String.valueOf(stats.toolVerificationFailures),
 	                String.valueOf(stats.toolExecutionFailures),
+	                String.valueOf(stats.externalValidationFailures),
 	                String.valueOf(stats.noToolCallRetries),
 	                String.valueOf(stats.hitMaxIterations),
 	                String.valueOf(returnedExtractPlan),
@@ -369,6 +372,7 @@ public class LLMReplanningStrategyModule implements StartupListener, PlanStrateg
 		}
 		this.contextObject.put("tripRoutersProvider", this.tripRouterProvider);
 		this.contextObject.put("activityFacilities", scenario.getActivityFacilities());
+		this.contextObject.put("scenario", this.scenario);
 		int totalRealPerson = 0;
 		for(Entry<Id<Person>, ? extends Person> p:this.scenario.getPopulation().getPersons().entrySet()){
 			if(p.getValue().getSelectedPlan().getPlanElements().size()<=3) {

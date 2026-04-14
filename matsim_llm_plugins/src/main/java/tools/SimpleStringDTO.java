@@ -26,7 +26,7 @@ public class SimpleStringDTO extends ToolArgumentDTO<String> {
     }
 
     @Override
-    public boolean isVerified(ErrorMessages em) {
+    public boolean isVerified(ErrorMessages em, Map<String,Object> context) {
         return value != null;
     }
 

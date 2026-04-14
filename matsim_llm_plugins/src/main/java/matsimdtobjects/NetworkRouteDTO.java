@@ -47,7 +47,7 @@ public class NetworkRouteDTO extends RouteDTO<NetworkRoute> {
 
     @Override
     public NetworkRoute toBaseClass(Map<String, Object> context, ErrorMessages em) {
-        if (!isVerified(em)) return null;
+        if (!isVerified(em, context)) return null;
         
         Id<Link> start = Id.createLinkId(startLinkId);
         Id<Link> end = Id.createLinkId(endLinkId);
@@ -71,7 +71,7 @@ public class NetworkRouteDTO extends RouteDTO<NetworkRoute> {
     }
 
     @Override
-    public boolean isVerified(ErrorMessages em) {
+    public boolean isVerified(ErrorMessages em, Map<String, Object> context) {
         boolean outcome = true;
 
         if (!"network".equals(routeType)) {
@@ -89,13 +89,48 @@ public class NetworkRouteDTO extends RouteDTO<NetworkRoute> {
             em.addErrorMessages("endLinkId is not defined for network route.");
         }
 
-        // linkIds can be empty; if present, must not contain blanks
         if (linkIds != null) {
             for (int i = 0; i < linkIds.size(); i++) {
                 String s = linkIds.get(i);
                 if (s == null || s.trim().isEmpty()) {
                     outcome = false;
                     em.addErrorMessages("linkIds contains a null or blank entry at position " + i + ".");
+                }
+            }
+        }
+
+        Object scenarioObj = context == null ? null : context.get("scenario");
+        if (scenarioObj == null) {
+            outcome = false;
+            em.addErrorMessages("Scenario is missing from context.");
+            return outcome;
+        }
+
+        if (!(scenarioObj instanceof org.matsim.api.core.v01.Scenario scenario)) {
+            outcome = false;
+            em.addErrorMessages("Context entry 'scenario' is not a MATSim Scenario.");
+            return outcome;
+        }
+
+        if (startLinkId != null && !startLinkId.trim().isEmpty()
+                && !scenario.getNetwork().getLinks().containsKey(org.matsim.api.core.v01.Id.createLinkId(startLinkId))) {
+            outcome = false;
+            em.addErrorMessages("startLinkId '" + startLinkId + "' does not exist in the scenario network.");
+        }
+
+        if (endLinkId != null && !endLinkId.trim().isEmpty()
+                && !scenario.getNetwork().getLinks().containsKey(org.matsim.api.core.v01.Id.createLinkId(endLinkId))) {
+            outcome = false;
+            em.addErrorMessages("endLinkId '" + endLinkId + "' does not exist in the scenario network.");
+        }
+
+        if (linkIds != null) {
+            for (int i = 0; i < linkIds.size(); i++) {
+                String s = linkIds.get(i);
+                if (s != null && !s.trim().isEmpty()
+                        && !scenario.getNetwork().getLinks().containsKey(org.matsim.api.core.v01.Id.createLinkId(s))) {
+                    outcome = false;
+                    em.addErrorMessages("linkIds entry '" + s + "' at position " + i + " does not exist in the scenario network.");
                 }
             }
         }

@@ -180,6 +180,7 @@ public class LLMWithinDayListener implements MobsimInitializedListener, StartupL
 		}
 		this.contextObject.put("tripRoutersProvider", this.tripRouterProvider);
 		this.contextObject.put("activityFacilities", scenario.getActivityFacilities());
+		this.contextObject.put("scenario", this.scenario);
 		double prob = ((double)numberOfLLMAgent)/this.scenario.getPopulation().getPersons().size();
 		this.scenario.getPopulation().getPersons().entrySet().forEach(p->{
 			if(MatsimRandom.getLocalInstance().nextDouble()<prob) {

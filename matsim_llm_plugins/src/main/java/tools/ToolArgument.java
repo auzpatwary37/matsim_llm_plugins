@@ -1,6 +1,7 @@
 package tools;
 
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.function.Function;
 
 import com.google.gson.Gson;
@@ -32,7 +33,7 @@ public class ToolArgument<B, T extends ToolArgumentDTO<B>> {
         return toDTO.apply(baseObject);
     }
 
-    public B fromJson(String json, Gson gson, ErrorMessages em) {
+    public B fromJson(String json, Gson gson, ErrorMessages em, Map<String,Object> context) {
         try {
         	JsonElement element = gson.fromJson(json, com.google.gson.JsonElement.class);
             // First parse into JsonObject once
@@ -65,11 +66,11 @@ public class ToolArgument<B, T extends ToolArgumentDTO<B>> {
 
             //dto.afterJsonLoad(json, gson);
 
-            if (!dto.isVerified(em)) {
+            if (!dto.isVerified(em, context)) {
                 throw new RuntimeException("DTO verification failed: " + dtoClass.getName());
             }
 
-            B base = dto.toBaseClass(null, em);
+            B base = dto.toBaseClass(context, em);
 
             if (base == null) {
                 throw new RuntimeException("DTO toBaseClass returned null: " + dtoClass.getName());

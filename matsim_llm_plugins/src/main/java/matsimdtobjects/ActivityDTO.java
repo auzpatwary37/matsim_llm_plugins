@@ -60,7 +60,7 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
 
     @Override
     public Activity toBaseClass(Map<String, Object> context, ErrorMessages em) {
-        if (!isVerified(em)) {
+        if (!isVerified(em, context)) {
             return null;
         }
 
@@ -82,7 +82,7 @@ public class ActivityDTO extends PlanElementDTO<Activity> {
     }
 
     @Override
-    public boolean isVerified(ErrorMessages em) {
+    public boolean isVerified(ErrorMessages em, Map<String,Object> context) {
     	boolean outcome = true;
         if (!"activity".equals(elementType)) {
             outcome = false;

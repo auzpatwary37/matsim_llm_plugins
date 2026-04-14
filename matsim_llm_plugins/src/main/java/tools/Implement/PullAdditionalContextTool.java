@@ -169,7 +169,7 @@ public class PullAdditionalContextTool implements ITool<List<RetrievedDocument>>
         }
 
         @Override
-        public boolean isVerified(ErrorMessages em) {
+        public boolean isVerified(ErrorMessages em, Map<String,Object> context) {
             if (key == null || key.isBlank()) return false;
             if (value == null) return false;
             return true;

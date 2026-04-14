@@ -26,7 +26,7 @@ public class SimpleDoubleDTO extends ToolArgumentDTO<Double> {
     }
 
     @Override
-    public boolean isVerified(ErrorMessages em) {
+    public boolean isVerified(ErrorMessages em, Map<String,Object> context) {
         return true; // or apply bounds check if needed
     }
 
