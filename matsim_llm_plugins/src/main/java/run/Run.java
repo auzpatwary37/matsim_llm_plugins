@@ -397,7 +397,11 @@ public final class Run implements Callable<Integer> {
       config.setLlmPort(this.llmPort);
       config.setEmbeddingPath(this.embeddingPath);
       config.setEmbeddingModelName(this.embeddingModelName);
-      config.setAuthorization(this.authorization);
+      if (authorization != null && authorization.startsWith("sk-")) {
+          config.setAuthorization("Bearer " + authorization);
+      } else {
+          config.setAuthorization(this.authorization);
+      }
       config.setVectorDbHost(this.vectorDbHost);
       config.setVectorDbPort(this.vectorDbPort);
       config.setVectorDbCollectionName(this.vectorDbCollectionName);

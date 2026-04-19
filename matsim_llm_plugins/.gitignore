@@ -5,3 +5,4 @@ output/*
 src/main/java/apikeys/*
 output*
 *.zip
+src/main/resources/llm_api_keys.properties

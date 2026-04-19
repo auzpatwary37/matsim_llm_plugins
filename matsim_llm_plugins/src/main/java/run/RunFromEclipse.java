@@ -4,13 +4,34 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
-import org.matsim.core.config.ConfigUtils;
+import java.util.Properties;
 
 public class RunFromEclipse {
+	
+	private static String loadApiKey() throws IOException {
+		Properties props = new Properties();
+		Path p = Path.of("src/main/resources/llm_api_keys.properties");
+		if (Files.exists(p)) {
+			props.load(Files.newInputStream(p));
+		}
+		return props.getProperty("openai.apiKey", "lm-studio");
+	}
+	
+	private static String[] appendArg(String[] args, String key, String value) {
+		String[] result = new String[args.length + 2];
+		System.arraycopy(args, 0, result, 0, args.length);
+		result[args.length] = key;
+		result[args.length + 1] = value;
+		return result;
+	}
+	
 	public static void main(String[] args) {
-		
-//		ConfigUtils.loadConfig(null);
+		String apiKey;
+		try {
+			apiKey = loadApiKey();
+		} catch (IOException e) {
+			apiKey = "lm-studio";
+		}
 		
 		String[] args1 = new String[] {
 				"--iterations","150",
@@ -143,7 +164,7 @@ public class RunFromEclipse {
 		        "--maxToolIteration","10",
 		};
 		
-		Run.main(args3);
+		Run.main(appendArg(args3, "--authorization", apiKey));
 		
 		
 	}
