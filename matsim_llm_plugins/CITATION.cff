@@ -1,0 +1,31 @@
+cff-version: "1.2.0"
+doi: ""
+
+message: "If you use this software, please cite it as below."
+
+authors:
+  - family: MATSim-LLM Contributors
+    given: The MATSim Community
+    organization: "MATSim Association"
+    orcid: ""
+
+title: "MATSim LLM Plugins"
+version: "0.1.0-SNAPSHOT"
+date-released: "2025-01-01"
+
+license: "MIT"
+
+repository_code: "https://github.com/matsim-org/matsim-llm-plugins"
+
+keywords:
+  - "MATSim"
+  - "Multi-Agent Transport Simulation"
+  - "LLM"
+  - "Large Language Model"
+  - "AI"
+  - "transportation"
+
+abstract: |
+  MATSim LLM Plugins provides integration between MATSim (Multi-Agent Transport Simulation)
+  and Large Language Models (LLMs) using an OpenAI-compatible tool-calling interface.
+  It enables agents to perform structured, context-aware decision-making during simulation.
