@@ -46,6 +46,7 @@ public class RunFromEclipse {
 				"--household","data/dataForLLM/outputODHouseholds_21_0.01.xml.gz",
 				"--paramfile","src/main/resources/paramReaderTrial1_newData REsult (1).csv",
 				"--clearplan", "true",
+				"--ifCheckLanes", "true",
 				"--output","output21.01_osmBase",
 				"--vehicles","data/dataForLLM/outputODVehicle_21_0.01.xml.gz",
 				// -------- LLM --------
@@ -90,6 +91,7 @@ public class RunFromEclipse {
 				"--household","data\\dataForLLMFromBase\\output_households.xml.gz",
 				"--paramfile","src/main/resources/paramReaderTrial1_newData REsult (1).csv",
 				"--clearplan", "false",
+		       "--ifCheckLanes", "true",
 				"--output","output21.01_osm_10AIAgent",
 				"--vehicles","data\\dataForLLMFromBase\\output_vehicles.xml.gz",
 				// -------- LLM --------
@@ -134,6 +136,7 @@ public class RunFromEclipse {
 				"--household","data\\dataForLLMFromBase\\output_households.xml.gz",
 				"--paramfile","src/main/resources/paramReaderTrial1_newData REsult (1).csv",
 				"--clearplan", "false",
+		       "--ifCheckLanes", "true",
 				"--output","output21.01_osm_10AIAgent_run2",
 				"--vehicles","data\\dataForLLMFromBase\\output_vehicles.xml.gz",
 				// -------- LLM --------

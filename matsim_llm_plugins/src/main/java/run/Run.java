@@ -123,8 +123,11 @@ public final class Run implements Callable<Integer> {
   @Option(names = {"--vehicles"}, description = {"Location of the auto vehicle file"}, defaultValue = "null")
   private String vehiclesFile;
   
-  @Option(names = {"--clearplan"}, description = {"If clear the population of routes and non selected plans"}, defaultValue = "false")
+  @Option(names = {"--clearplan"}, description = {"If clear the population of routes and reassign facilities"}, defaultValue = "false")
   private String ifClear;
+  
+  @Option(names = {"--ifCheckLanes"}, description = {"If perform lane validation and fix (true) or skip (false)"}, defaultValue = "true")
+  private String ifCheckLanes;
   
 //---------------- LLM options ----------------
 
@@ -263,16 +266,18 @@ public final class Run implements Callable<Integer> {
     	addStrategy(config, LLMReplanningStrategyModule.StrategyName,null,1.0,(int)(this.maxIterations*.8));
     }
     Scenario scenario = ScenarioUtils.loadScenario(config);
-    removeNonExistantLanes(scenario.getNetwork(),scenario.getLanes());
-    increaseLaneCapacity(scenario.getLanes(), 5600);
-    setMinimumCapacity(1000, scenario.getNetwork());// Only for EMME 
-    //new NetworkCleaner().run( scenario.getNetwork());
-    checkPtConsistency(scenario.getNetwork(),scenario.getTransitSchedule(), scenario.getLanes());
-    Set<Id<Link>> problemLinks = runLaneBasedNetworkCleaner(scenario.getNetwork(),scenario.getLanes(), true);
-    checkNetworkCapacityLengthAndLanes(scenario.getNetwork(),scenario.getLanes());
+    Set<Id<Link>> problemLinks = new HashSet<>();
     
-    updateLaneNumberAndLinkCapacity(scenario.getNetwork());
-    fixInvalidDepartureTimes(scenario.getTransitSchedule(), scenario.getNetwork());
+    if (Boolean.parseBoolean(ifCheckLanes)) {
+        removeNonExistantLanes(scenario.getNetwork(), scenario.getLanes());
+        increaseLaneCapacity(scenario.getLanes(), 5600);
+        setMinimumCapacity(1000, scenario.getNetwork());
+        checkPtConsistency(scenario.getNetwork(), scenario.getTransitSchedule(), scenario.getLanes());
+        problemLinks = runLaneBasedNetworkCleaner(scenario.getNetwork(), scenario.getLanes(), true);
+        checkNetworkCapacityLengthAndLanes(scenario.getNetwork(), scenario.getLanes());
+        updateLaneNumberAndLinkCapacity(scenario.getNetwork());
+        fixInvalidDepartureTimes(scenario.getTransitSchedule(), scenario.getNetwork());
+    }
     
 //    problemLinks.add(Id.createLinkId("34221"));//203299
 //    problemLinks.add(Id.createLinkId("95049"));
@@ -370,8 +375,8 @@ public final class Run implements Callable<Integer> {
     		System.out.println("No start and end time was found for activity = "+actType+ " in the base population!! Inserting 8 hour as the typical duration.");
     	}
     }
-    if(ifClear.equals("true"))clearPopulationFromRouteAndNetwork(scenario.getPopulation(),scenario.getNetwork(),scenario.getActivityFacilities());
-    if(ifClear.equals("true"))assignLinksToFacilities(scenario.getActivityFacilities(),scenario.getNetwork(), problemLinks);
+    if (Boolean.parseBoolean(ifClear)) clearPopulationFromRouteAndNetwork(scenario.getPopulation(), scenario.getNetwork(), scenario.getActivityFacilities());
+    if (Boolean.parseBoolean(ifClear)) assignLinksToFacilities(scenario.getActivityFacilities(), scenario.getNetwork(), problemLinks);
     ValidationResult r = TransitScheduleValidator.validateAll(scenario.getTransitSchedule(), scenario.getNetwork());
 	System.out.println("transit is valid? "+ r.isValid());
     Controler controler = new Controler(scenario);
