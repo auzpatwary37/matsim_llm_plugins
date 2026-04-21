@@ -1,31 +1,42 @@
 cff-version: "1.2.0"
-doi: ""
-
 message: "If you use this software, please cite it as below."
-
-authors:
-  - family: MATSim-LLM Contributors
-    given: The MATSim Community
-    organization: "MATSim Association"
-    orcid: ""
 
 title: "MATSim LLM Plugins"
 version: "0.1.0-SNAPSHOT"
 date-released: "2025-01-01"
-
 license: "MIT"
 
-repository_code: "https://github.com/matsim-org/matsim-llm-plugins"
+repository-code: "https://github.com/matsim-org/matsim-llm-plugins"
+
+authors:
+  - family-names: "Patwary"
+    given-names: "A. U. Z."
+    affiliation: "Department of Civil, Geological, and Mining Engineering, Polytechnique Montréal"
+  - family-names: "Ciari"
+    given-names: "Francesco"
+    affiliation: "Department of Civil, Geological, and Mining Engineering, Polytechnique Montréal"
 
 keywords:
   - "MATSim"
   - "Multi-Agent Transport Simulation"
+  - "Large Language Models"
   - "LLM"
-  - "Large Language Model"
   - "AI"
-  - "transportation"
+  - "Transportation"
 
-abstract: |
+abstract: >
   MATSim LLM Plugins provides integration between MATSim (Multi-Agent Transport Simulation)
-  and Large Language Models (LLMs) using an OpenAI-compatible tool-calling interface.
-  It enables agents to perform structured, context-aware decision-making during simulation.
+  and large language models (LLMs) using an OpenAI-compatible tool-calling interface.
+  It enables agents to perform structured, context-aware decision-making during simulation,
+  supporting both replanning and within-day adaptive behavior.
+
+preferred-citation:
+  type: article
+  authors:
+    - family-names: "Patwary"
+      given-names: "A. U. Z."
+    - family-names: "Ciari"
+      given-names: "Francesco"
+  title: "Simulation-Grounded LLM Agents with Episodic Memory: A Framework for Experiential Reasoning in MATSim"
+  year: 2026
+  institution: "Polytechnique Montréal"
