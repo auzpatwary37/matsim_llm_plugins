@@ -283,7 +283,7 @@ public class LLMConfigGroup extends ReflectiveConfigGroup {
     // AUTHENTICATION & HEADERS
     // ========================================================================
 
-    /** Authorization header value (e.g., "Bearer sk-..." for OpenAI API key) */
+    /** Authorization (for OpenAI API key) */
     private String authorization;
     
     /** OpenAI organization ID (optional, for organization-scoped requests) */
