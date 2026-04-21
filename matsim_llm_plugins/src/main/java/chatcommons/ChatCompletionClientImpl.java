@@ -10,6 +10,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.matsim.core.controler.MatsimServices;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -30,7 +32,14 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
+/**
+ * HTTP client for LLM API communication.
+ * Supports OpenAI, LM Studio, and Ollama backends.
+ * Logs all requests and responses to JSONL files.
+ */
 public class ChatCompletionClientImpl implements IChatCompletionClient {
+
+	private static final Logger log = LoggerFactory.getLogger(ChatCompletionClientImpl.class);
 
 	private final LLMConfigGroup config;
 	  // Raw request/response JSONL log
@@ -85,15 +94,10 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
 				.post(RequestBody.create(body, MediaType.parse("application/json")))
 				.build();
 
-//		System.out.println(body);
-//		System.out.println(request.toString());
-		
-		
-		
 		Integer httpStatus = null;
 	    String responseBody = null;
 	    String error = null;
-	    
+
 		try (Response response = httpClient.newCall(request).execute()) {
 			responseBody  = response.body() != null ? response.body().string() : "(no body)";
 
@@ -197,20 +201,15 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
 				.post(RequestBody.create(body, MediaType.parse("application/json")))
 				.build();
 
-//		System.out.println(body);
-//		System.out.println(request.toString());
-		
-		
-		
 		Integer httpStatus = null;
 	    String responseBody = null;
 	    String error = null;
-	    
+
 		try (Response response = httpClient.newCall(request).execute()) {
 			responseBody  = response.body() != null ? response.body().string() : "(no body)";
 
 			httpStatus = response.code();
-            
+
 
 			if (!response.isSuccessful()) {
 				throw new IOException("HTTP " + response.code() + " error from OpenAI: " + responseBody);
@@ -294,7 +293,7 @@ public class ChatCompletionClientImpl implements IChatCompletionClient {
             writer.write(gson.toJson(obj));
             writer.newLine();
         } catch (IOException e) {
-            System.err.println("Failed to write LLM log to " + filePath + ": " + e.getMessage());
+            log.error("Failed to write LLM log to {}: {}", filePath, e.getMessage());
         }
     }
 
