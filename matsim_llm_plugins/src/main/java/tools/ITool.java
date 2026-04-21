@@ -65,7 +65,7 @@ public interface ITool<T>{
         }
 
         parameters.add("properties", properties);
-        parameters.add("required", required);  // Add this line
+        parameters.add("required", required);
 
         schema.add("parameters", parameters);
         return schema;
@@ -131,7 +131,7 @@ public interface ITool<T>{
     default IToolResponse<T> handleErrorMessage(String callId, Exception ex, ErrorMessages em) {
         JsonObject errorJson = new JsonObject();
         errorJson.addProperty("status", "ERROR");
-        errorJson.addProperty("message", "Tool invocation failed: " + ex.getMessage()+" the full reasons are :"+em.getCombinedErrorMessages());
+        errorJson.addProperty("message", "Tool invocation failed: " + ex.getMessage() + " because: " + em.getCombinedErrorMessages());
 
         return new DefaultToolResponse<T>(
             callId,

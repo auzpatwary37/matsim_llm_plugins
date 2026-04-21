@@ -8,6 +8,10 @@ import com.google.gson.annotations.SerializedName;
 import tools.IToolCall;
 import chatcommons.Role;
 
+/**
+ * LM Studio response parser.
+ * Produces OpenAI-compatible JSON format.
+ */
 public class LmStudioChatResponse implements IChatCompletionResponse {
 
     private String id;
