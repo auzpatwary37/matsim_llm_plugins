@@ -15,14 +15,19 @@ public interface IChatManager {
 	
 	
 	/**
-	 * 
-	 * @return the id of the chatmanager thread.
+	 * Returns the unique identifier for this chat session.
+	 * This ID is used to distinguish between different chat manager instances
+	 * in the ChatManagerContainer.
+	 *
+	 * @return unique thread ID
 	 */
 	Id<IChatManager> getId();
 	
 	/**
-	 * 
-	 * @return the personId associated to this manager if there is anyS
+	 * Returns the MATSim agent ID associated with this chat session.
+	 * This links the chat history to a specific person in the population.
+	 *
+	 * @return person ID, or null if not associated
 	 */
 	Id<Person> getPersonId();
 	
@@ -101,7 +106,20 @@ public interface IChatManager {
      */
     void clear();
     
-    Map<String, Object> getContextObject();
-    void setContextObject(Map<String,Object> context);
+    /**
+	 * Returns arbitrary context data stored with this chat session.
+	 * Used to pass data between tool executions.
+	 *
+	 * @return context map
+	 */
+	Map<String, Object> getContextObject();
+
+	/**
+	 * Stores arbitrary context data with this chat session.
+	 * The context is passed to tools during execution.
+	 *
+	 * @param context key-value pairs to store
+	 */
+	void setContextObject(Map<String,Object> context);
 
 }
