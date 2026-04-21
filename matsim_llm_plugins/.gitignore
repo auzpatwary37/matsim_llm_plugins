@@ -6,3 +6,15 @@ src/main/java/apikeys/*
 output*
 *.zip
 src/main/resources/llm_api_keys.properties
+
+# Generated chat logs
+llm_chat_log_*
+
+# Large data files
+config_Intermediate.xml
+
+# Opencode internal
+.opencode/
+
+# BMad internal
+_bmad/
