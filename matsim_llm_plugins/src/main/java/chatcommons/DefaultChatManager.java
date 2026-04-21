@@ -1,7 +1,5 @@
 package chatcommons;
 
-
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -10,6 +8,8 @@ import java.util.Map;
 
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.population.Person;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import chatrequest.IRequestMessage;
 import chatrequest.SimpleRequestMessage;
@@ -27,7 +27,13 @@ import tools.ExternalValidator;
 import tools.IToolManager;
 import tools.IToolResponse;
 
+/**
+ * Default implementation of chat manager.
+ * Handles LLM communication, tool execution loop, and RAG integration.
+ */
 public class DefaultChatManager implements IChatManager {
+
+	private static final Logger log = LoggerFactory.getLogger(DefaultChatManager.class);
 	
 	private IChatMessage systemMessage;
     private final IChatCompletionClient llmClient;
@@ -56,14 +62,6 @@ public class DefaultChatManager implements IChatManager {
         if (this.personId != null) {
             filter.put("personId", this.personId.toString());
         }
-
-//        // Optional: add more filters if you stored them
-//        if (this.context != null) {
-//            Object iteration = context.get("iteration");
-//            if (iteration != null) {
-//                filter.put("iteration", iteration.toString());
-//            }
-//        }
 
         return filter;
     }
@@ -109,8 +107,7 @@ public class DefaultChatManager implements IChatManager {
                 stats.noToolCallRetries = noToolCallRetryCount;
 
                 if (noToolCallRetryCount >= maxNoToolCallRetries) {
-                    System.out.println("Warning: model failed to produce a valid tool call after "
-                            + maxNoToolCallRetries + " attempts.");
+                    log.warn("Warning: model failed to produce a valid tool call after {} attempts.", maxNoToolCallRetries);
                     retrievalFlag = true;
 
                     stats.success = false;
@@ -269,8 +266,7 @@ public class DefaultChatManager implements IChatManager {
                 stats.noToolCallRetries = noToolCallRetryCount;
 
                 if (noToolCallRetryCount >= maxNoToolCallRetries) {
-                    System.out.println("Warning: model failed to produce a valid tool call after "
-                            + maxNoToolCallRetries + " attempts.");
+                    log.warn("Warning: model failed to produce a valid tool call after {} attempts.", maxNoToolCallRetries);
                     retrievalFlag = true;
 
                     stats.success = false;
@@ -385,7 +381,7 @@ public class DefaultChatManager implements IChatManager {
         return new ChatResult(toolResponses, stats);
     }
 
-    @SuppressWarnings("unchecked")
+@SuppressWarnings("unchecked")
     private static <T> boolean runExternalValidationUnchecked(
             ExternalValidator<?> validator,
             Object rawOutput,
@@ -396,71 +392,6 @@ public class DefaultChatManager implements IChatManager {
         T candidate = typedValidator.getTargetType().cast(rawOutput);
         return typedValidator.validate(candidate, context, em);
     }
-
-//    @Override
-//    public ChatResult submit(IRequestMessage message) {
-////        history.add(message);
-//    	Map<String, IToolResponse<?>> toolResponses = new HashMap<>();
-//    	ChatStats stats = new ChatStats();
-//
-//    	long startTime = System.currentTimeMillis();
-//
-//    	int noToolCallRetryCount = 0;
-//    	final int maxNoToolCallRetries = 3;
-//
-//    	final int maxIteration = 12;
-//    	int i = 0;
-//
-//    	stats.success = false;
-//    	stats.failureType = "UNKNOWN";
-//        
-//        while (true) {
-//            IResponseMessage response = submitInternal(message);
-//            history.add(response);
-//
-//            if (response.getToolCalls() == null || response.getToolCalls().isEmpty()) {
-//            	noToolCallRetryCount++;
-//
-//                if (noToolCallRetryCount >= maxNoToolCallRetries) {
-//                    System.out.println("Warning: model failed to produce a valid tool call after "
-//                            + maxNoToolCallRetries + " attempts.");
-//                    retrievalFlag = true;
-//                    break;
-//                }
-//                IRequestMessage noToolMessage = new SimpleRequestMessage(Role.USER,"Your previous response was invalid because it did not contain any valid tool call. "
-//                		+ "You must respond with a valid tool call only.",null,false);
-//                message = noToolMessage;
-//                retrievalFlag = false;
-//            }else {
-//            	noToolCallRetryCount = 0;
-//            	retrievalFlag = true;
-//	            List<IToolResponse<?>> newResponses = new ArrayList<>();
-//	            boolean ifNonDummy = false;
-//	            for (var call : response.getToolCalls()) {
-//	                
-//	                IToolResponse<?> toolResult = toolManager.runToolCall(call, this.vectorDB, this.context);
-//	                newResponses.add(toolResult);
-//	                toolResponses.put(call.getId(), toolResult);
-//	                if(toolResult.isForLLM()) {
-//	                	ifNonDummy = true;
-//	                }
-//	                
-//	            }
-//	
-//	            IRequestMessage toolMessage = new SimpleRequestMessage(Role.TOOL,"",newResponses,false);
-//	//            history.add(toolMessage);
-//	            message = toolMessage;
-//	            
-//	            if(!ifNonDummy) {
-//	            	break;
-//	            }
-//            }
-//            i++;
-//            if(i>maxIteration)break;
-//        }
-//
-//        return new ChatResult(toolResponses,stats);
-//    }
 
 
     @Override
@@ -557,13 +488,11 @@ public class DefaultChatManager implements IChatManager {
 
 	@Override
 	public Id<IChatManager> getId() {
-		// TODO Auto-generated method stub
 		return this.id;
 	}
 
 	@Override
 	public Map<String, Object> getContextObject() {
-		// TODO Auto-generated method stub
 		return this.context;
 	}
 
@@ -574,7 +503,6 @@ public class DefaultChatManager implements IChatManager {
 
 	@Override
 	public Id<Person> getPersonId() {
-		// TODO Auto-generated method stub
 		return this.personId;
 	}
 

@@ -1,5 +1,9 @@
 package prompts;
 
+/**
+ * System prompts provided to LLM agents.
+ * Contains prompts for MATSim agent behavior, plan extraction, and routing.
+ */
 public class IndividualPrompt {
 	
 	public static final String systemPrompt = "You are an AI agent controlling a single person inside a MATSim transportation simulation.\n"
