@@ -8,6 +8,10 @@ import com.google.gson.annotations.SerializedName;
 import tools.IToolCall;
 import chatcommons.Role;
 
+/**
+ * OpenAI API response parser.
+ * Parses JSON and extracts reasoning from content.
+ */
 public class OpenAiChatResponse implements IChatCompletionResponse {
 
     private String id;
@@ -58,7 +62,6 @@ public class OpenAiChatResponse implements IChatCompletionResponse {
 
 		@Override
 		public boolean ifEnableThinking() {
-			// TODO Auto-generated method stub
 			return false;
 		}
     }
@@ -214,7 +217,6 @@ public class OpenAiChatResponse implements IChatCompletionResponse {
 
 	@Override
 	public String getReasoning() {
-		// TODO Auto-generated method stub
 		return this.reasoning;
 	}
 }

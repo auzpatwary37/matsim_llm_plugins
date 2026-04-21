@@ -49,7 +49,6 @@ public class SimpleRequestMessage implements IRequestMessage {
 
 	@Override
 	public boolean ifEnableThinking() {
-		// TODO Auto-generated method stub
 		return this.enableThinking;
 	}
 }
