@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.matsim.api.core.v01.Id;
 
-import apikeys.APIKeys;
 import chatrequest.IRequestMessage;
 import chatrequest.SimpleRequestMessage;
 import chatresponse.IChatCompletionResponse;
@@ -55,8 +54,6 @@ class ChatCompletionClientImplTest {
 		LLMConfigGroup llmConfig = new LLMConfigGroup();
     	llmConfig.setBackend(LLMConfigGroup.BackendType.LM_STUDIO);
     	llmConfig.setAuthorization("lm-studio");
-//    	llmConfig.setProject(APIKeys.PROJECT_ID);
-//    	llmConfig.setOrganization(APIKeys.ORGANIZATION_ID);
     	llmConfig.setModelName("qwen/qwen3.5-9b");
     	llmConfig.setLlmHost("localhost");
     	llmConfig.setLlmPort(1234);
@@ -100,11 +97,21 @@ class ChatCompletionClientImplTest {
 		
 	}
 	public void setupOpenAi() {
+		String apiKey = System.getenv("OPENAI_API_KEY");
+		if (apiKey == null || apiKey.isBlank()) {
+			throw new IllegalStateException("OPENAI_API_KEY is not set.");
+		}
 		LLMConfigGroup llmConfig = new LLMConfigGroup();
     	llmConfig.setBackend(LLMConfigGroup.BackendType.OPENAI);
-    	llmConfig.setAuthorization(APIKeys.GPT_KEY);
-    	llmConfig.setProject(APIKeys.PROJECT_ID);
-    	llmConfig.setOrganization(APIKeys.ORGANIZATION_ID);
+	    	llmConfig.setAuthorization(apiKey);
+	    	String projectId = System.getenv("OPENAI_PROJECT_ID");
+	    	if (projectId != null && !projectId.isBlank()) {
+	    		llmConfig.setProject(projectId);
+	    	}
+	    	String organizationId = System.getenv("OPENAI_ORGANIZATION_ID");
+	    	if (organizationId != null && !organizationId.isBlank()) {
+	    		llmConfig.setOrganization(organizationId);
+	    	}
     	llmConfig.setModelName("gpt-4-turbo");
     	llmConfig.setLlmHost("api.openai.com");
     	llmConfig.setUseHttps(true);

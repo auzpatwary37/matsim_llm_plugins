@@ -16,7 +16,6 @@ import org.junit.jupiter.api.Test;
 import org.matsim.api.core.v01.Id;
 import org.matsim.core.controler.MatsimServices;
 
-import apikeys.APIKeys;
 import chatrequest.IRequestMessage;
 import chatrequest.SimpleRequestMessage;
 import chatresponse.IChatCompletionResponse;
@@ -65,7 +64,7 @@ class LiveBackendConnectivityIT {
 
     @Test
     void openAi_clientAndChatThread_areAccessible() {
-        String apiKey = firstNonBlank(System.getenv("OPENAI_API_KEY"), APIKeys.GPT_KEY);
+        String apiKey = firstNonBlank(System.getenv("OPENAI_API_KEY"));
         Assumptions.assumeTrue(apiKey != null && !apiKey.isBlank(),
                 "OpenAI API key is not configured.");
 
@@ -150,11 +149,13 @@ class LiveBackendConnectivityIT {
         LLMConfigGroup config = new LLMConfigGroup();
         config.setBackend(LLMConfigGroup.BackendType.OPENAI);
         config.setAuthorization(apiKey);
-        if (APIKeys.PROJECT_ID != null && !APIKeys.PROJECT_ID.isBlank()) {
-            config.setProject(APIKeys.PROJECT_ID);
+        String projectId = firstNonBlank(System.getenv("OPENAI_PROJECT_ID"));
+        if (projectId != null && !projectId.isBlank()) {
+            config.setProject(projectId);
         }
-        if (APIKeys.ORGANIZATION_ID != null && !APIKeys.ORGANIZATION_ID.isBlank()) {
-            config.setOrganization(APIKeys.ORGANIZATION_ID);
+        String organizationId = firstNonBlank(System.getenv("OPENAI_ORGANIZATION_ID"));
+        if (organizationId != null && !organizationId.isBlank()) {
+            config.setOrganization(organizationId);
         }
         config.setModelName(firstNonBlank(System.getenv("OPENAI_MODEL"), "gpt-4o-mini"));
         config.setLlmHost("api.openai.com");
