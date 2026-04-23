@@ -92,7 +92,7 @@
           <manifest>
  				<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                 <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
-            <mainClass>run.Run</mainClass>
+            <mainClass>org.matsim.contrib.llm.run.Run</mainClass>
 				
           </manifest>
 <manifestEntries>
@@ -129,7 +129,7 @@
             <transformers>
               <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
               <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                <mainClass>run.Run</mainClass>
+                <mainClass>org.matsim.contrib.llm.run.Run</mainClass>
               </transformer>
             </transformers>
             <filters>
