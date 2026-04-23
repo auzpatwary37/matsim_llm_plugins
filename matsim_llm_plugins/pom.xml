@@ -41,6 +41,13 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>1.68.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
     </dependencies>
   </dependencyManagement>
   
@@ -85,7 +92,7 @@
           <manifest>
  				<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                 <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
-            <mainClass>run.Run</mainClass>
+            <mainClass>org.matsim.contrib.llm.run.Run</mainClass>
 				
           </manifest>
 <manifestEntries>
@@ -122,7 +129,7 @@
             <transformers>
               <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
               <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                <mainClass>run.Run</mainClass>
+                <mainClass>org.matsim.contrib.llm.run.Run</mainClass>
               </transformer>
             </transformers>
             <filters>
@@ -158,15 +165,6 @@
 			<url>https://jitpack.io</url>
 		</repository>
   
-  <repository>
-    <id>ojo-snapshots</id>
-    <name>MATSim snapshot repository</name>
-    <url>http://oss.jfrog.org/libs-snapshot</url>
-    <snapshots>
-      <enabled>true</enabled>
-    </snapshots>
-  </repository>
-  
 <repository>
       <id>osgeo</id>
       <name>OSGeo Release Repository</name>
@@ -192,11 +190,6 @@
 		<repository>
 			<id>com.slimjars.trove4j</id>
 			<url>https://mvn.slimjars.com</url>
-		</repository>
-
-		<repository>
-			<id>SBB</id>
-			<url>https://schweizerischebundesbahnen.bintray.com/simba.mvn</url>
 		</repository>
 
 </repositories>
@@ -257,13 +250,7 @@
             <artifactId>gt-swing</artifactId>
         </dependency>
         
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-swing</artifactId>
-            <version>${geotools.version}</version>
-        </dependency>
-        
-        <!-- https://mvnrepository.com/artifact/info.picocli/picocli -->
+<!-- https://mvnrepository.com/artifact/info.picocli/picocli -->
 <dependency>
     <groupId>info.picocli</groupId>
     <artifactId>picocli</artifactId>
@@ -342,17 +329,6 @@
     <artifactId>okhttp</artifactId>
     <version>4.10.0</version>
 </dependency>
-
-
-
-<dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-bom</artifactId>
-            <version>1.68.1</version>
-            <type>pom</type>
-            <scope>import</scope>
-        </dependency>
-
 <!-- Source: https://mvnrepository.com/artifact/dev.langchain4j/langchain4j -->
 <dependency>
     <groupId>dev.langchain4j</groupId>
