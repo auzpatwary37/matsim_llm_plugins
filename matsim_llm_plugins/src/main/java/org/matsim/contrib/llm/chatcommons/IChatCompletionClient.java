@@ -1,0 +1,41 @@
+package org.matsim.contrib.llm.chatcommons;
+
+
+import java.util.List;
+import java.util.Map;
+
+import com.google.gson.JsonObject;
+
+import org.matsim.contrib.llm.chatrequest.IRequestMessage;
+import org.matsim.contrib.llm.chatresponse.IChatCompletionResponse;
+import org.matsim.contrib.llm.matsimBinding.LLMConfigGroup;
+
+public interface IChatCompletionClient {
+
+    /**
+     * Queries the LLM using the full conversation history and the new user message.
+     * Responsible for constructing the API payload, sending it, and parsing the response.
+     *
+     * @param history      All prior messages in the conversation (excluding system message)
+     * @param userMessage  The current user message to send
+     * @return The assistant's response (may contain tool calls)
+     */
+    IChatCompletionResponse query(List<IChatMessage> history, IRequestMessage userMessage, List<JsonObject> tools, Map<String,Boolean> ifToolDummy);
+    
+    
+    /**
+     * Queries the LLM using the full conversation history and the new user message.
+     * Responsible for constructing the API payload, sending it, and parsing the response.
+     *
+     * @param history      All prior messages in the conversation (excluding system message)
+     * @param userMessage  The current user message to send
+     * @return The assistant's response (may contain tool calls)
+     */
+    IChatCompletionResponse query(List<IChatMessage> history, List<IRequestMessage> userMessages, List<JsonObject> tools, Map<String,Boolean> ifToolDummy);
+
+    /**
+     * Returns the name of the underlying LLM model used.
+     */
+    LLMConfigGroup getLLMConfig();
+}
+
