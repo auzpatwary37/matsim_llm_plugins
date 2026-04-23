@@ -97,7 +97,7 @@ public class LLMControllerListener implements StartupListener, IterationEndsList
 			ChatResult result = chat.getValue().submit(new SimpleRequestMessage(
 			        Role.USER,
 			        IndividualPrompt.planExtractPrompt+"\n"+basePlan
-			    ));
+			    ), null);
 			Map<String, IToolResponse<?>> output = result.toolResponses;
 			Plan outPlan = null;
 			

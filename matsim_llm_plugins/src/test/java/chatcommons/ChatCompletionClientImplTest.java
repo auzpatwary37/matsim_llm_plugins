@@ -162,7 +162,7 @@ class ChatCompletionClientImplTest {
 		this.setupLMStudio();
 		//this.setupOpenAi();
 		this.setupVectorDB(config);
-		Map<String, IToolResponse<?>> toolResponses = this.chatManager.submit(new SimpleRequestMessage(Role.USER,"Try out the tools we have. Give a shout if the result is correct. If not give a shout that it is wrong!!!!")).toolResponses;
+		Map<String, IToolResponse<?>> toolResponses = this.chatManager.submit(new SimpleRequestMessage(Role.USER,"Try out the tools we have. Give a shout if the result is correct. If not give a shout that it is wrong!!!!"), null).toolResponses;
 		toolResponses.entrySet().forEach(tr->{
 			System.out.println("for tool "+tr.getValue().getName()+" and id "+ tr.getKey()+" the response is "+tr.getValue().getResponseJson());
 		});

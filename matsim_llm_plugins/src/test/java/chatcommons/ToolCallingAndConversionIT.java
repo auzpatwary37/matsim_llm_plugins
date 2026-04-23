@@ -122,7 +122,7 @@ class ToolCallingAndConversionIT {
         manager.setSystemMessage("You are a test assistant.");
 
         Map<String, IToolResponse<?>> results = manager.submit(
-                new SimpleRequestMessage(Role.USER, "Use the echo tool.")).toolResponses;
+                new SimpleRequestMessage(Role.USER, "Use the echo tool."), null).toolResponses;
 
         assertEquals(1, results.size());
         IToolResponse<?> response = results.get("call_echo_1");

@@ -50,9 +50,9 @@ class LiveBackendConnectivityIT {
         manager.setSystemMessage("You are paired with MATSim. Reply briefly.");
 
         Map<String, IToolResponse<?>> first = manager.submit(
-                new SimpleRequestMessage(chatcommons.Role.USER, "Say hello to MATSim in one sentence.",false)).toolResponses;
+                new SimpleRequestMessage(chatcommons.Role.USER, "Say hello to MATSim in one sentence.",false), null).toolResponses;
         Map<String, IToolResponse<?>> second = manager.submit(
-                new SimpleRequestMessage(chatcommons.Role.USER, "Now confirm the thread is still alive.", false)).toolResponses;
+                new SimpleRequestMessage(chatcommons.Role.USER, "Now confirm the thread is still alive.", false), null).toolResponses;
 
         assertNotNull(first);
         assertNotNull(second);
@@ -86,8 +86,8 @@ class LiveBackendConnectivityIT {
                 null,config);
         manager.setSystemMessage("You are paired with MATSim. Reply briefly.");
 
-        manager.submit(new SimpleRequestMessage(chatcommons.Role.USER, "Say hello to MATSim."));
-        manager.submit(new SimpleRequestMessage(chatcommons.Role.USER, "Confirm the chat thread still remembers this pairing."));
+        manager.submit(new SimpleRequestMessage(chatcommons.Role.USER, "Say hello to MATSim."), null);
+        manager.submit(new SimpleRequestMessage(chatcommons.Role.USER, "Confirm the chat thread still remembers this pairing."), null);
 
         assertTrue(manager.getHistory().size() >= 3);
         assertNotNull(manager.getLastMessage());

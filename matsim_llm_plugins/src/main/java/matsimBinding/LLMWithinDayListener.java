@@ -125,7 +125,8 @@ public class LLMWithinDayListener implements MobsimInitializedListener, StartupL
                     new SimpleRequestMessage(
                             Role.USER,
                             IndividualPrompt.planExtractPrompt + "\n" + basePlan
-                    )
+                    ),
+                    null
             );
              
             Map<String, IToolResponse<?>> toolResponses = result.toolResponses;

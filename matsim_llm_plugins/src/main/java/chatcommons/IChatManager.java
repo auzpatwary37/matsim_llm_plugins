@@ -45,16 +45,6 @@ public interface IChatManager {
      * @param userMessage The initial user message
      * @return A map of toolCallId to IToolResponse for all executed tools
      */
-    ChatResult submit(IRequestMessage userMessage);
-    
-    /**
-     * External entry point from MATSim.
-     * Submits a user message to the LLM, executes all tool calls,
-     * and returns all tool responses (including dummy tools).
-     *
-     * @param userMessage The initial user message
-     * @return A map of toolCallId to IToolResponse for all executed tools
-     */
     ChatResult submit(IRequestMessage userMessage,Map<String,ExternalValidator<?>> externalToolResultValidator);
 
     /**
