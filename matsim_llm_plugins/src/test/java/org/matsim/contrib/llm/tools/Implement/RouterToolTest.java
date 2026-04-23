@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,10 +22,14 @@ import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
+import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.population.routes.GenericRouteImpl;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.population.routes.RouteUtils;
+import org.matsim.core.router.FallbackRoutingModule;
+import org.matsim.core.router.RoutingModule;
+import org.matsim.core.router.TripRouter;
 import org.matsim.facilities.ActivityFacilities;
 import org.matsim.facilities.ActivityFacilitiesFactory;
 import org.matsim.facilities.ActivityFacility;
@@ -39,6 +44,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.inject.Provider;
 
 import org.matsim.contrib.llm.matsimdtobjects.LegDTO;
 import org.matsim.contrib.llm.matsimdtobjects.PlanDTO;
@@ -54,6 +60,8 @@ public class RouterToolTest {
     private ActivityFacilities facilities;
     private ActivityFacility facA;
     private ActivityFacility facB;
+    private Provider<TripRouter> networkTripRouterProvider;
+    private Provider<TripRouter> ptTripRouterProvider;
 
     @BeforeEach
     void setUp() {
@@ -67,6 +75,9 @@ public class RouterToolTest {
 
         facilities.addActivityFacility(facA);
         facilities.addActivityFacility(facB);
+
+        networkTripRouterProvider = buildProvider(this::buildNetworkRoute);
+        ptTripRouterProvider = buildProvider(this::buildPtRoute);
     }
 
     @Test
@@ -92,7 +103,7 @@ public class RouterToolTest {
         assertTrue(requiredFields.contains("fromFacilityId"));
         assertTrue(requiredFields.contains("toFacilityId"));
         assertTrue(requiredFields.contains("mode"));
-        assertFalse(requiredFields.contains("departureTimeSeconds"));
+        assertTrue(requiredFields.contains("departureTimeSeconds"));
     }
 
     @Test
@@ -105,7 +116,7 @@ public class RouterToolTest {
 
         Map<String, Object> context = new HashMap<>();
         context.put("activityFacilities", facilities);
-        context.put("tripRouter", new FakeNetworkTripRouter());
+        context.put("tripRoutersProvider", networkTripRouterProvider);
 
         ErrorMessages em = new ErrorMessages();
 
@@ -123,7 +134,7 @@ public class RouterToolTest {
 
         Map<String, Object> context = new HashMap<>();
         context.put("activityFacilities", facilities);
-        context.put("tripRouter", new FakeNetworkTripRouter());
+        context.put("tripRoutersProvider", networkTripRouterProvider);
 
         ErrorMessages em = new ErrorMessages();
 
@@ -141,7 +152,7 @@ public class RouterToolTest {
     void testCallTool_networkRoute_returnsPlanAndSerializableJson() {
         Map<String, Object> context = new HashMap<>();
         context.put("activityFacilities", facilities);
-        context.put("tripRouter", new FakeNetworkTripRouter());
+        context.put("tripRoutersProvider", networkTripRouterProvider);
 
 
         Map<String, Object> args = new HashMap<>();
@@ -184,7 +195,7 @@ public class RouterToolTest {
     void testCallTool_ptRoute_preservesFullElementStack() {
         Map<String, Object> context = new HashMap<>();
         context.put("activityFacilities", facilities);
-        context.put("tripRouter", new FakePtTripRouter());
+        context.put("tripRoutersProvider", ptTripRouterProvider);
        
 
         Map<String, Object> args = new HashMap<>();
@@ -238,7 +249,7 @@ public class RouterToolTest {
     void testCall_parsesWrappedJsonArguments() {
         Map<String, Object> context = new HashMap<>();
         context.put("activityFacilities", facilities);
-        context.put("tripRouter", new FakeNetworkTripRouter());
+        context.put("tripRoutersProvider", networkTripRouterProvider);
 
 
         String toolJson = """
@@ -266,7 +277,7 @@ public class RouterToolTest {
     void testCall_returnsStructuredErrorResponseForBadInput() {
         Map<String, Object> context = new HashMap<>();
         context.put("activityFacilities", facilities);
-        context.put("tripRouter", new FakeNetworkTripRouter());
+        context.put("tripRoutersProvider", networkTripRouterProvider);
 
 
         String badJson = """
@@ -288,82 +299,81 @@ public class RouterToolTest {
         assertTrue(error.get("message").getAsString().contains("Origin facilityId not found"));
     }
 
-    // ---------------------------------------------------------------------
-    // Fake routers used by reflection inside RouterTool
-    // ---------------------------------------------------------------------
+    private Provider<TripRouter> buildProvider(RoutingModule module) {
+        try {
+            Map<String, jakarta.inject.Provider<RoutingModule>> modules = new HashMap<>();
+            modules.put("car", () -> module);
+            modules.put("pt", () -> module);
 
-    public static class FakeNetworkTripRouter {
-        public List<? extends PlanElement> calcRoute(
-                String mode,
-                ActivityFacility fromFacility,
-                ActivityFacility toFacility,
-                double departureTimeSeconds,
-                Person person) {
+            FallbackRoutingModule fallback = request -> Collections.emptyList();
 
-            Leg leg = PopulationUtils.createLeg(mode);
+            var ctor = TripRouter.class.getDeclaredConstructor(Map.class, org.matsim.core.config.Config.class,
+                    FallbackRoutingModule.class);
+            ctor.setAccessible(true);
+            TripRouter router = ctor.newInstance(modules, ConfigUtils.createConfig(), fallback);
 
-            NetworkRoute route = RouteUtils.createNetworkRoute(List.of(
-                    Id.createLinkId("l_start"),
-                    Id.createLinkId("l_mid"),
-                    Id.createLinkId("l_end")
-            ));
-            leg.setRoute(route);
-            leg.setDepartureTime(departureTimeSeconds);
-            leg.setTravelTime(600.0);
-
-            return List.of(leg);
+            return () -> router;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public static class FakePtTripRouter {
-        public List<? extends PlanElement> calcRoute(
-                String mode,
-                ActivityFacility fromFacility,
-                ActivityFacility toFacility,
-                double departureTimeSeconds,
-                Person person) {
+    private List<? extends PlanElement> buildNetworkRoute(org.matsim.core.router.RoutingRequest request) {
+        Leg leg = PopulationUtils.createLeg("car");
+        NetworkRoute route = RouteUtils.createNetworkRoute(List.of(
+                Id.createLinkId("l_start"),
+                Id.createLinkId("l_mid"),
+                Id.createLinkId("l_end")
+        ));
+        leg.setRoute(route);
+        leg.setDepartureTime(request.getDepartureTime());
+        leg.setTravelTime(600.0);
+        return List.of(leg);
+    }
 
-            Activity access = PopulationUtils.createActivityFromFacilityId(
-                    "pt interaction",
-                    Id.create("fac_access", ActivityFacility.class)
-            );
+    private List<? extends PlanElement> buildPtRoute(org.matsim.core.router.RoutingRequest request) {
+        double departureTimeSeconds = request.getDepartureTime();
 
-            Leg walkLeg = PopulationUtils.createLeg("transit_walk");
-            GenericRouteImpl walkRoute = new GenericRouteImpl(
-                    Id.createLinkId("walk_start"),
-                    Id.createLinkId("walk_end")
-            );
-            walkRoute.setDistance(250.0);
-            walkRoute.setTravelTime(180.0);
-            walkRoute.setRouteDescription("walk to stop");
-            walkLeg.setRoute(walkRoute);
-            walkLeg.setDepartureTime(departureTimeSeconds);
-            walkLeg.setTravelTime(180.0);
+        Activity access = PopulationUtils.createActivityFromFacilityId(
+                "pt interaction",
+                Id.create("fac_access", ActivityFacility.class)
+        );
 
-            Activity wait = PopulationUtils.createActivityFromFacilityId(
-                    "pt interaction",
-                    Id.create("fac_wait", ActivityFacility.class)
-            );
+        Leg walkLeg = PopulationUtils.createLeg("transit_walk");
+        GenericRouteImpl walkRoute = new GenericRouteImpl(
+                Id.createLinkId("walk_start"),
+                Id.createLinkId("walk_end")
+        );
+        walkRoute.setDistance(250.0);
+        walkRoute.setTravelTime(180.0);
+        walkRoute.setRouteDescription("walk to stop");
+        walkLeg.setRoute(walkRoute);
+        walkLeg.setDepartureTime(departureTimeSeconds);
+        walkLeg.setTravelTime(180.0);
 
-            Leg ptLeg = PopulationUtils.createLeg("pt");
-            TransitPassengerRoute ptRoute = new DefaultTransitPassengerRoute(
-                    Id.createLinkId("pt_start"),
-                    Id.createLinkId("pt_end"),
-                    Id.create("stop_a", TransitStopFacility.class),
-                    Id.create("stop_b", TransitStopFacility.class),
-                    Id.create("line_1", TransitLine.class),
-                    Id.create("route_1", TransitRoute.class)
-            );
-            ptLeg.setRoute(ptRoute);
-            ptLeg.setDepartureTime(departureTimeSeconds + 180.0);
-            ptLeg.setTravelTime(900.0);
+        Activity wait = PopulationUtils.createActivityFromFacilityId(
+                "pt interaction",
+                Id.create("fac_wait", ActivityFacility.class)
+        );
 
-            Activity egress = PopulationUtils.createActivityFromFacilityId(
-                    "work",
-                    Id.create("fac_b", ActivityFacility.class)
-            );
+        Leg ptLeg = PopulationUtils.createLeg("pt");
+        TransitPassengerRoute ptRoute = new DefaultTransitPassengerRoute(
+                Id.createLinkId("pt_start"),
+                Id.createLinkId("pt_end"),
+                Id.create("stop_a", TransitStopFacility.class),
+                Id.create("stop_b", TransitStopFacility.class),
+                Id.create("line_1", TransitLine.class),
+                Id.create("route_1", TransitRoute.class)
+        );
+        ptLeg.setRoute(ptRoute);
+        ptLeg.setDepartureTime(departureTimeSeconds + 180.0);
+        ptLeg.setTravelTime(900.0);
 
-            return List.of(access, walkLeg, wait, ptLeg, egress);
-        }
+        Activity egress = PopulationUtils.createActivityFromFacilityId(
+                "work",
+                Id.create("fac_b", ActivityFacility.class)
+        );
+
+        return List.of(access, walkLeg, wait, ptLeg, egress);
     }
 }

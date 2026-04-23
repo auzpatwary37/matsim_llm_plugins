@@ -18,6 +18,14 @@ public class RunFromEclipse {
 	}
 	
 	private static String[] appendArg(String[] args, String key, String value) {
+		for (int i = 0; i < args.length - 1; i += 2) {
+			if (key.equals(args[i])) {
+				String[] result = args.clone();
+				result[i + 1] = value;
+				return result;
+			}
+		}
+
 		String[] result = new String[args.length + 2];
 		System.arraycopy(args, 0, result, 0, args.length);
 		result[args.length] = key;
@@ -32,7 +40,7 @@ public class RunFromEclipse {
 		} catch (IOException e) {
 			apiKey = "lm-studio";
 		}
-		
+
 		String[] args1 = new String[] {
 				"--iterations","150",
 				"--thread", "8",
